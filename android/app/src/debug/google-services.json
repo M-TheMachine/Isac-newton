@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "130839400143",
+    "project_id": "practice-exam-759b1",
+    "storage_bucket": "practice-exam-759b1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:130839400143:android:ee5ce0e8139a6cf99c31ba",
+        "android_client_info": {
+          "package_name": "com.isaac"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "130839400143-ip1u70drf6rdmr49dssl8jqqnode2uqt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0HaL-BeUR3YAx8tPKupeERF_dDm1zlyQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "130839400143-ip1u70drf6rdmr49dssl8jqqnode2uqt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
