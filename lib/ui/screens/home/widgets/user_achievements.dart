@@ -17,6 +17,13 @@ class UserAchievements extends StatelessWidget {
   final String userScore;
   final Animation<Offset> animation;
 
+  static const _verticalDivider = VerticalDivider(
+    color: Color(0x99FFFFFF),
+    indent: 12,
+    endIndent: 14,
+    thickness: 2,
+  );
+
   @override
   Widget build(BuildContext context) {
     final rank = AppLocalization.of(context)!.getTranslatedValues("rankLbl")!;
@@ -27,6 +34,7 @@ class UserAchievements extends StatelessWidget {
       position: animation,
       child: LayoutBuilder(
         builder: (_, constraints) {
+          final size = MediaQuery.of(context).size;
           return Stack(
             children: [
               Positioned(
@@ -60,12 +68,12 @@ class UserAchievements extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                   padding: const EdgeInsets.symmetric(
-                      vertical: 12.5, horizontal: 20),
+                      vertical: 12.5,
+                    horizontal: 20,
+                  ),
                   margin: EdgeInsets.symmetric(
-                    vertical: MediaQuery.of(context).size.height *
-                        UiUtils.vtMarginPct,
-                    horizontal:
-                        MediaQuery.of(context).size.width * UiUtils.hzMarginPct,
+                    vertical: size.height * UiUtils.vtMarginPct,
+                    horizontal: size.width * UiUtils.hzMarginPct,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -78,12 +86,7 @@ class UserAchievements extends StatelessWidget {
                       //   thickness: 2,
                       // ),
                       // _Achievement(title: coins, value: userCoins),
-                      VerticalDivider(
-                        color: Colors.white.withOpacity(0.6),
-                        indent: 12,
-                        endIndent: 14,
-                        thickness: 2,
-                      ),
+                      _verticalDivider,
                       _Achievement(title: score, value: userScore),
                     ],
                   ),
