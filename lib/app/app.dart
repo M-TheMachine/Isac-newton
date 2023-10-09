@@ -28,7 +28,6 @@ import 'package:flutterquiz/features/profileManagement/profileManagementReposito
 import 'package:flutterquiz/features/quiz/cubits/comprehensionCubit.dart';
 import 'package:flutterquiz/features/quiz/cubits/contestCubit.dart';
 import 'package:flutterquiz/features/quiz/cubits/quizCategoryCubit.dart';
-import 'package:flutterquiz/features/quiz/cubits/quizoneCategoryCubit.dart';
 import 'package:flutterquiz/features/quiz/cubits/subCategoryCubit.dart';
 import 'package:flutterquiz/features/quiz/cubits/unlockedLevelCubit.dart';
 import 'package:flutterquiz/features/quiz/quizRepository.dart';
@@ -45,7 +44,7 @@ import 'package:flutterquiz/utils/constants/constants.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
+import '../features/quiz/cubits/unlock_premium_category_cubit.dart';
 Future<Widget> initializeApp() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -97,9 +96,6 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<UserDetailsCubit>(
           create: (_) => UserDetailsCubit(ProfileManagementRepository()),
-        ),
-        BlocProvider<QuizoneCategoryCubit>(
-          create: (_) => QuizoneCategoryCubit(QuizRepository()),
         ),
         //bookmark questions of quiz zone
         BlocProvider<BookmarkCubit>(
@@ -164,6 +160,9 @@ class MyApp extends StatelessWidget {
         //set quiz categories success
         BlocProvider<SubCategoryCubit>(
           create: (_) => SubCategoryCubit(QuizRepository()),
+        ),
+         BlocProvider<UnlockPremiumCategoryCubit>(
+          create: (_) => UnlockPremiumCategoryCubit(QuizRepository()),
         ),
       ],
       child: Builder(
