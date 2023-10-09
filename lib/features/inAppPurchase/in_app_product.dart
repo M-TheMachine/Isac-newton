@@ -38,5 +38,3 @@ class InAppProduct {
       "isActive : $isActive"
       " }";
 }
-
-// TODO : in future updates, in response only send active IAPs.
