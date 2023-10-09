@@ -6,6 +6,7 @@ import 'package:flutterquiz/app/routes.dart';
 import 'package:flutterquiz/features/profileManagement/cubits/userDetailsCubit.dart';
 import 'package:flutterquiz/features/quiz/cubits/quizCategoryCubit.dart';
 import 'package:flutterquiz/features/quiz/cubits/subCategoryCubit.dart';
+import 'package:flutterquiz/features/quiz/models/category.dart';
 import 'package:flutterquiz/features/quiz/models/quizType.dart';
 import 'package:flutterquiz/features/systemConfig/cubits/systemConfigCubit.dart';
 import 'package:flutterquiz/ui/widgets/customAppbar.dart';
@@ -274,6 +275,7 @@ class _SelfChallengeScreenState extends State<SelfChallengeScreen> {
       return _buildDropdown(
           forCategory: false,
           values: state.subcategoryList
+              .where((s) => !s.isPremium || (s.isPremium && s.hasUnlocked))
               .map((e) => {"name": e.subcategoryName, "id": e.id})
               .toList(),
           keyValue: "selectSubcategorySuccess${state.categoryId}");
@@ -360,6 +362,13 @@ class _SelfChallengeScreenState extends State<SelfChallengeScreen> {
                     }
                   },
                   builder: (context, state) {
+                    var categories = <Category>[];
+                    if (state is QuizCategorySuccess) {
+                      categories = state.categories;
+                      categories
+                          .removeWhere((c) => c.isPremium && !c.hasUnlocked);
+                    }
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -379,7 +388,7 @@ class _SelfChallengeScreenState extends State<SelfChallengeScreen> {
                             child: state is QuizCategorySuccess
                                 ? _buildDropdown(
                                     forCategory: true,
-                                    values: state.categories
+                                    values: categories
                                         .map((e) => {
                                               "name": e.categoryName,
                                               "id": e.id,
