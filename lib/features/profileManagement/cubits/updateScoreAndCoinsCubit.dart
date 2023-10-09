@@ -56,8 +56,8 @@ class UpdateScoreAndCoinsCubit extends Cubit<UpdateScoreAndCoinsState> {
     _profileManagementRepository
         .updateScore(userId: userId!, score: score, type: type)
         .then(
-          (result) => UpdateScoreAndCoinsSuccess(
-              coins: result['coins'], score: result['score']),
+          (result) => emit(UpdateScoreAndCoinsSuccess(
+              coins: result['coins'], score: result['score'])),
         )
         .catchError((e) {
         
