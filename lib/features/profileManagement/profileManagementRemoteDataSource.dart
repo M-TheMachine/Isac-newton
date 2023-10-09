@@ -279,7 +279,7 @@ class ProfileManagementRemoteDataSource {
 
       final response = await http.post(Uri.parse(updateProfileUrl),
           body: body, headers: await ApiUtils.getHeaders());
-
+      
       final responseJson = jsonDecode(response.body);
       if (responseJson['error']) {
         throw ProfileManagementException(
