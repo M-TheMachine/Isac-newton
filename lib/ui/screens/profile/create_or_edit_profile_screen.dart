@@ -73,7 +73,8 @@ class _SelectProfilePictureScreen extends State<CreateOrEditProfileScreen> {
 
   final _formKey = GlobalKey<FormState>();
   TextEditingController? nameController;
-  TextEditingController? emailController;
+  TextEditingController?
+      emailController; // TODO: toLowerCase before, requesting verification.
   TextEditingController? phoneController;
   TextEditingController inviteTextEditingController = TextEditingController();
   bool iHaveInviteCode = false;
@@ -109,8 +110,11 @@ class _SelectProfilePictureScreen extends State<CreateOrEditProfileScreen> {
     await context.read<UploadProfileCubit>().uploadProfilePicture(file, userId);
   }
 
-  Widget _buildCurrentProfilePictureContainer(
-      {required String image, required bool isFile, required isAsset}) {
+  Widget _buildCurrentProfilePictureContainer({
+    required String image,
+    required bool isFile,
+    required isAsset,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     final width = MediaQuery.of(context).size.width;
 
@@ -249,6 +253,9 @@ class _SelectProfilePictureScreen extends State<CreateOrEditProfileScreen> {
   }
 
   Future<CroppedFile?> _croppedImage(String pickedFilePath) async {
+    final title =
+        AppLocalization.of(context)!.getTranslatedValues("cropperLbl");
+
     return await ImageCropper().cropImage(
       sourcePath: pickedFilePath,
       aspectRatioPresets: [
@@ -258,13 +265,13 @@ class _SelectProfilePictureScreen extends State<CreateOrEditProfileScreen> {
       compressFormat: ImageCompressFormat.png,
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: 'Cropper',
+          toolbarTitle: title,
           toolbarColor: Theme.of(context).primaryColor,
           toolbarWidgetColor: Theme.of(context).colorScheme.background,
           initAspectRatio: CropAspectRatioPreset.square,
           activeControlsWidgetColor: Theme.of(context).primaryColor,
         ),
-        IOSUiSettings(title: 'Cropper'),
+        IOSUiSettings(title: title),
       ],
     );
   }
@@ -291,7 +298,8 @@ class _SelectProfilePictureScreen extends State<CreateOrEditProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Profile Photo",
+              AppLocalization.of(context)!
+                  .getTranslatedValues("profilePhotoLbl")!,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -401,29 +409,23 @@ class _SelectProfilePictureScreen extends State<CreateOrEditProfileScreen> {
 
   Widget _buildDefaultAvtarImage(int index, String imageName) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedAvatar = imageName;
-          selectedImage = null;
-        });
-      },
+      onTap: () => setState(() {
+        selectedAvatar = imageName;
+        selectedImage = null;
+      }),
       child: LayoutBuilder(
-        builder: (context, constraints) {
-          double profileRadiusPercentage = constraints.maxHeight <
-                  UiUtils.profileHeightBreakPointResultScreen
-              ? 0.175
-              : 0.2;
-
+        builder: (_, constraints) {
+          final size = constraints.maxHeight * .66;
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 7),
-            height: MediaQuery.of(context).size.height * .18,
-            width: MediaQuery.of(context).size.width * .18,
-            decoration: const BoxDecoration(shape: BoxShape.circle),
-            child: CircleAvatar(
-              radius:
-                  constraints.maxHeight * (profileRadiusPercentage - 0.0535),
-              backgroundImage: AssetImage(
-                UiUtils.getprofileImagePath(imageName),
+            height: size,
+            width: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                image: AssetImage(
+                  UiUtils.getprofileImagePath(imageName),
+                ),
               ),
             ),
           );
