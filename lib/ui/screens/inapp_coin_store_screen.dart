@@ -134,11 +134,17 @@ class _CoinStoreScreenState extends State<CoinStoreScreen>
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(top: 20, bottom: 15),
-                      child: SvgPicture.network(
-                        iap.image,
-                        width: 40,
-                        height: 26,
-                      ),
+                      child: iap.image.endsWith('.svg')
+                          ? SvgPicture.network(
+                              iap.image,
+                              width: 40,
+                              height: 26,
+                            )
+                          : Image.network(
+                              iap.image,
+                              width: 40,
+                              height: 26,
+                            ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 6),
