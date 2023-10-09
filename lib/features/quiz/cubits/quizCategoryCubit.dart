@@ -50,6 +50,36 @@ class QuizCategoryCubit extends Cubit<QuizCategoryState> {
   void updateState(QuizCategoryState updatedState) {
     emit(updatedState);
   }
+  void unlockPremiumCategory({required String id}) {
+    if (state is QuizCategorySuccess) {
+      final categories = (state as QuizCategorySuccess).categories;
+
+      final idx = categories.indexWhere((c) => c.id == id);
+
+      if (idx != -1) {
+        emit(QuizCategoryProgress());
+
+        categories[idx] = categories[idx].copyWith(hasUnlocked: true);
+
+        emit(QuizCategorySuccess(categories));
+      }
+    }
+  }
+
+  bool isPremiumCategoryUnlocked(String categoryId) {
+    if (state is QuizCategorySuccess) {
+      final categories = (state as QuizCategorySuccess).categories;
+
+      final idx = categories.indexWhere((c) => c.id == categoryId);
+
+      if (idx != -1) {
+        final cate = categories[idx];
+        return !cate.isPremium || (cate.isPremium && cate.hasUnlocked);
+      }
+    }
+    return false;
+  }
+
 
   getCat() {
     if (state is QuizCategorySuccess) {
