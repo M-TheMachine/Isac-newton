@@ -140,6 +140,20 @@ class _ExamKeyBottomSheetContainerState
     );
   }
 
+  late Color _onTertiary;
+  late String _showLessLbl;
+  late String _viewAllRulesLbl;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _onTertiary = Theme.of(context).colorScheme.onTertiary;
+    _showLessLbl =
+        AppLocalization.of(context)!.getTranslatedValues("showLess")!;
+    _viewAllRulesLbl =
+        AppLocalization.of(context)!.getTranslatedValues(viewAllRulesKey)!;
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -176,27 +190,28 @@ class _ExamKeyBottomSheetContainerState
                 Align(
                   alignment: Alignment.center,
                   child: Text(
-                    "Enter in Exam",
+                    AppLocalization.of(context)!
+                        .getTranslatedValues("enterExamLbl")!,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      color: Theme.of(context).colorScheme.onTertiary,
+                      color: _onTertiary,
                     ),
                   ),
                 ),
                 Divider(
-                  color:
-                      Theme.of(context).colorScheme.onTertiary.withOpacity(0.6),
+                  color: _onTertiary.withOpacity(0.6),
                   thickness: 1.5,
                 ),
                 const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.center,
                   child: Text(
-                    "Please enter the exam key",
+                    AppLocalization.of(context)!
+                        .getTranslatedValues("enterExamKeyLbl")!,
                     style: TextStyle(
                       fontSize: 16,
-                      color: Theme.of(context).colorScheme.onTertiary,
+                      color: _onTertiary,
                     ),
                   ),
                 ),
@@ -216,25 +231,12 @@ class _ExamKeyBottomSheetContainerState
                       keyboardType: TextInputType.number,
                       obscureText: false,
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      textStyle: TextStyle(
-                          color: Theme.of(context).colorScheme.onTertiary),
+                      textStyle: TextStyle(color: _onTertiary),
                       pinTheme: PinTheme(
-                        selectedFillColor: Theme.of(context)
-                            .colorScheme
-                            .onTertiary
-                            .withOpacity(0.1),
-                        inactiveColor: Theme.of(context)
-                            .colorScheme
-                            .onTertiary
-                            .withOpacity(0.1),
-                        activeColor: Theme.of(context)
-                            .colorScheme
-                            .onTertiary
-                            .withOpacity(0.1),
-                        inactiveFillColor: Theme.of(context)
-                            .colorScheme
-                            .onTertiary
-                            .withOpacity(0.1),
+                        selectedFillColor: _onTertiary.withOpacity(0.1),
+                        inactiveColor: _onTertiary.withOpacity(0.1),
+                        activeColor: _onTertiary.withOpacity(0.1),
+                        inactiveFillColor: _onTertiary.withOpacity(0.1),
                         selectedColor: Theme.of(context)
                             .colorScheme
                             .secondary
@@ -243,12 +245,9 @@ class _ExamKeyBottomSheetContainerState
                         borderRadius: BorderRadius.circular(8),
                         fieldHeight: 45,
                         fieldWidth: 45,
-                        activeFillColor: Theme.of(context)
-                            .colorScheme
-                            .onTertiary
-                            .withOpacity(0.2),
+                        activeFillColor: _onTertiary.withOpacity(0.2),
                       ),
-                      cursorColor: Theme.of(context).colorScheme.onTertiary,
+                      cursorColor: _onTertiary,
                       animationDuration: const Duration(milliseconds: 200),
                       enableActiveFill: true,
                       onChanged: (v) {},
@@ -261,10 +260,7 @@ class _ExamKeyBottomSheetContainerState
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onTertiary
-                        .withOpacity(0.1),
+                    color: _onTertiary.withOpacity(0.1),
                   ),
                   width: double.infinity,
                   margin: EdgeInsets.symmetric(
@@ -280,7 +276,7 @@ class _ExamKeyBottomSheetContainerState
                         AppLocalization.of(context)!
                             .getTranslatedValues(examRulesKey)!,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onTertiary,
+                          color: _onTertiary,
                           fontSize: 16.0,
                           fontWeight: FontWeight.bold,
                         ),
@@ -293,13 +289,10 @@ class _ExamKeyBottomSheetContainerState
                           showAllExamRules = !showAllExamRules;
                         }),
                         child: Text(
-                          showAllExamRules
-                              ? "Show Less"
-                              : AppLocalization.of(context)!
-                                  .getTranslatedValues(viewAllRulesKey)!,
+                          showAllExamRules ? _showLessLbl : _viewAllRulesLbl,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(context).colorScheme.onTertiary,
+                            color: _onTertiary,
                             decoration: TextDecoration.underline,
                           ),
                         ),
@@ -320,7 +313,7 @@ class _ExamKeyBottomSheetContainerState
                           child: Text(
                             errorMessage,
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onTertiary,
+                              color: _onTertiary,
                             ),
                           ),
                         ),
@@ -339,7 +332,7 @@ class _ExamKeyBottomSheetContainerState
                         widthPercentage: MediaQuery.of(context).size.width,
                         backgroundColor: rulesAccepted
                             ? Theme.of(context).primaryColor
-                            : Theme.of(context).colorScheme.onTertiary,
+                            : _onTertiary,
                         buttonTitle: state is ExamFetchInProgress
                             ? AppLocalization.of(context)!
                                 .getTranslatedValues(submittingButton)!
