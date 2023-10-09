@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutterquiz/features/battleRoom/battleRoomRepository.dart';
 import 'package:flutterquiz/features/battleRoom/models/battleRoom.dart';
@@ -120,12 +120,13 @@ class MultiUserBattleRoomCubit extends Cubit<MultiUserBattleRoomState> {
   }
 
   //to join multi user battle room
-  void joinRoom(
-      {String? name,
-      String? profileUrl,
-      String? uid,
-      String? roomCode,
-      required String currentCoin}) async {
+  void joinRoom({
+    String? name,
+    String? profileUrl,
+    String? uid,
+    String? roomCode,
+    required String currentCoin,
+  }) async {
     emit(MultiUserBattleRoomInProgress());
     try {
       final result = await _battleRoomRepository.joinMultiUserBattleRoom(
