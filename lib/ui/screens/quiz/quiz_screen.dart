@@ -56,6 +56,7 @@ class QuizScreen extends StatefulWidget {
   // only used for when there is no questions for that category,
   // and showing retry button doesn't make any sense i guess.
   final bool showRetryButton;
+  final bool isPremiumCategory;
 
   const QuizScreen({
     super.key,
@@ -70,6 +71,7 @@ class QuizScreen extends StatefulWidget {
     required this.contestId,
     required this.comprehension,
     this.showRetryButton = true,
+    required this.isPremiumCategory,
   });
 
   @override
@@ -110,6 +112,7 @@ class QuizScreen extends StatefulWidget {
           comprehension:
               arguments["comprehension"] ?? Comprehension.fromJson({}),
           showRetryButton: arguments['showRetryButton'] ?? true,
+          isPremiumCategory: arguments['isPremiumCategory'] ?? false,
         ),
       ),
     );
@@ -279,7 +282,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       "comprehension": widget.comprehension,
       "timeTakenToCompleteQuiz": totalSecondsToCompleteQuiz,
       "hasUsedAnyLifeline": checkHasUsedAnyLifeline(),
-      "entryFee": 0
+      "entryFee": 0,
+      "isPremiumCategory": widget.isPremiumCategory,
     });
   }
 
@@ -789,6 +793,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   }
 
   void showAdDialog() {
+    // Hide Ads in Premium Category/Subcategory.
+    if (widget.isPremiumCategory) return;
+    
     if (context.read<RewardedAdCubit>().state is! RewardedAdLoaded) {
       UiUtils.setSnackbar(
           AppLocalization.of(context)!.getTranslatedValues(
