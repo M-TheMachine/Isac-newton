@@ -20,7 +20,6 @@ import 'package:flutterquiz/features/profileManagement/cubits/uploadProfileCubit
 import 'package:flutterquiz/features/profileManagement/cubits/userDetailsCubit.dart';
 import 'package:flutterquiz/features/profileManagement/profileManagementRepository.dart';
 import 'package:flutterquiz/features/quiz/cubits/quizCategoryCubit.dart';
-import 'package:flutterquiz/features/quiz/cubits/quizoneCategoryCubit.dart';
 import 'package:flutterquiz/features/quiz/models/quizType.dart';
 import 'package:flutterquiz/features/systemConfig/cubits/systemConfigCubit.dart';
 import 'package:flutterquiz/features/systemConfig/model/supportedQuestionLanguage.dart';
@@ -88,7 +87,7 @@ class _MenuScreenState extends State<MenuScreen> {
     "shareAppLbl",
     "rateUsLbl",
     "logoutLbl",
-    "deleteAccount"
+    "deleteAccountLbl"
   ];
 
   final menuIcon = [
@@ -137,7 +136,7 @@ class _MenuScreenState extends State<MenuScreen> {
     if (widget.isGuest) {
       menuName.removeWhere((e) => e == "logoutLbl");
       menuIcon.removeWhere((e) => e == "logout_icon.svg");
-      menuName.removeWhere((e) => e == "deleteAccount");
+      menuName.removeWhere((e) => e == "deleteAccountLbl");
       menuIcon.removeWhere((e) => e == "delete_account.svg");
     }
 
@@ -152,7 +151,9 @@ class _MenuScreenState extends State<MenuScreen> {
 
       if (res['error']) throw Exception(res['message'].toString());
 
-      return List.from(res['data'].map((e) => InAppProduct.fromJson(e)));
+      return List.from(
+        res['data'].map<InAppProduct>((e) => InAppProduct.fromJson(e)),
+      );
     } catch (e) {
       debugPrint(e.toString());
     }
@@ -241,16 +242,17 @@ class _MenuScreenState extends State<MenuScreen> {
                     isNewUser: false);
                 //
                 UiUtils.setSnackbar(
-                    AppLocalization.of(context)!
-                        .getTranslatedValues(accountDeletedSuccessfullyKey)!,
-                    context,
-                    false);
+                  localizedValueOf(accountDeletedSuccessfullyKey),
+                  context,
+                  false,
+                );
                 Navigator.of(context).pop();
                 Navigator.of(context).pushReplacementNamed(Routes.login);
               } else if (state is DeleteAccountFailure) {
                 UiUtils.setSnackbar(
-                    AppLocalization.of(context)!.getTranslatedValues(
-                        convertErrorCodeToLanguageKey(state.errorMessage))!,
+                    localizedValueOf(
+                      convertErrorCodeToLanguageKey(state.errorMessage),
+                    ),
                     context,
                     false);
               }
@@ -274,8 +276,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           const CircularProgressContainer(size: 45.0),
                           const SizedBox(width: 15.0),
                           Text(
-                            AppLocalization.of(context)!
-                                .getTranslatedValues(deletingAccountKey)!,
+                            localizedValueOf(deletingAccountKey),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.secondary,
                               fontSize: 16.0,
@@ -439,8 +440,8 @@ class _MenuScreenState extends State<MenuScreen> {
                 widget.isGuest
                     ? _buildProfileCard(
                         "",
-                        "Hello Guest",
-                        "Email or Mobile Details show",
+                        localizedValueOf("helloGuest"),
+                        localizedValueOf("provideGuestDetails"),
                       )
 
                     /// User Profile
@@ -475,9 +476,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   children: List.generate(
                     3,
                     (i) {
-                      final name = AppLocalization.of(context)!
-                          .getTranslatedValues(menuName[i])!;
-
+                      final name = localizedValueOf(menuName[i]);
                       return GestureDetector(
                         onTap: () => setState(() => _onPressed(menuName[i])),
                         child: Container(
@@ -572,8 +571,7 @@ class _MenuScreenState extends State<MenuScreen> {
                               const SizedBox(width: 12),
                               Flexible(
                                 child: Text(
-                                  AppLocalization.of(context)!
-                                      .getTranslatedValues(menuName[index])!,
+                                  localizedValueOf(menuName[index]),
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 16.0,
@@ -601,13 +599,13 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   void _onPressed(String index) {
-    /// Menus that guest can click/use. user doesn't have to login.
+    /// Menus that guest can click/use without being logged in.
     switch (index) {
       case "theme":
-        themeSelectBottomSheet();
+        _showThemeSelector();
         return;
       case "language":
-        languageSelectBottomSheet();
+        _showLanguageSelector();
         return;
       case "aboutQuizApp":
         Navigator.of(context).pushNamed(Routes.aboutApp);
@@ -630,65 +628,63 @@ class _MenuScreenState extends State<MenuScreen> {
         LaunchReview.launch(androidAppId: packageName, iOSAppId: iosAppId);
         return;
       case "coinStore":
-        Navigator.of(context).pushNamed(
-          Routes.coinStore,
-          arguments: {
-            "isGuest": widget.isGuest,
-            "iapProducts": iapProducts,
-          },
-        );
+        Navigator.of(context).pushNamed(Routes.coinStore, arguments: {
+          "isGuest": widget.isGuest,
+          "iapProducts": iapProducts,
+        });
         return;
     }
 
     /// Menus that users can't use without signing in, (ex. in guest mode).
     if (widget.isGuest) {
       showDialog(
-          context: context,
-          builder: (_) => GuestModeDialog(
-                onTapYesButton: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushReplacementNamed(Routes.login);
-                },
-              ));
+        context: context,
+        builder: (_) => GuestModeDialog(onTapYesButton: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+          Navigator.of(context).pushReplacementNamed(Routes.login);
+        }),
+      );
       return;
     }
 
+    /// Menus for logged in users only.
     switch (index) {
       case "notificationLbl":
         Navigator.of(context).pushNamed(Routes.notification);
-        break;
+        return;
       case "coinHistory":
         Navigator.of(context).pushNamed(Routes.coinHistory);
-        break;
+        return;
       case "wallet":
         Navigator.of(context).pushNamed(Routes.wallet);
-        break;
+        return;
       case "bookmarkLbl":
         Navigator.of(context).pushNamed(Routes.bookmark);
-        break;
+        return;
       case "inviteFriendsLbl":
         Navigator.of(context).pushNamed(Routes.referAndEarn);
-        break;
+        return;
       case "badges":
         Navigator.of(context).pushNamed(Routes.badges);
-        break;
+        return;
       case "rewardsLbl":
         Navigator.of(context).pushNamed(Routes.rewards);
-        break;
+        return;
       case "statisticsLabel":
         Navigator.of(context).pushNamed(Routes.statistics);
-        break;
+        return;
       case "logoutLbl":
         _showLogoutDialog();
-        break;
-      case "deleteAccount":
+        return;
+      case "deleteAccountLbl":
         _showDeleteAccountDialog();
-        break;
+        return;
     }
   }
 
-  void themeSelectBottomSheet() {
+  void _showThemeSelector() {
+    final size = MediaQuery.of(context).size;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -701,75 +697,63 @@ class _MenuScreenState extends State<MenuScreen> {
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: UiUtils.bottomSheetTopRadius,
           ),
-          height: MediaQuery.of(context).size.height * 0.5,
+          height: size.height * 0.5,
           padding: EdgeInsets.only(
-            top: MediaQuery.of(context).size.height * .02,
+            top: size.height * .02,
           ),
           child: BlocBuilder<ThemeCubit, ThemeState>(
             bloc: context.read<ThemeCubit>(),
             builder: (context, state) {
               AppTheme? currTheme = state.appTheme;
+              final colorScheme = Theme.of(context).colorScheme;
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Align(
                     alignment: Alignment.center,
                     child: Text(
-                      AppLocalization.of(context)!
-                          .getTranslatedValues("theme")!,
+                      localizedValueOf("theme"),
                       style: TextStyle(
                         fontWeight: FontWeights.bold,
                         fontSize: 18,
-                        color: Theme.of(context).colorScheme.onTertiary,
+                        color: colorScheme.onTertiary,
                       ),
                     ),
                   ),
                   // horizontal divider
                   Divider(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onTertiary
-                        .withOpacity(0.2),
+                    color: colorScheme.onTertiary.withOpacity(0.2),
                     thickness: 1,
                   ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.02,
-                  ),
+                  SizedBox(height: size.height * 0.02),
                   Container(
                     decoration: BoxDecoration(
                       color: currTheme == AppTheme.light
                           ? Theme.of(context).primaryColor
-                          : Theme.of(context)
-                              .colorScheme
-                              .onTertiary
-                              .withOpacity(0.1),
+                          : colorScheme.onTertiary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     margin: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width *
-                          UiUtils.hzMarginPct,
+                      horizontal: size.width * UiUtils.hzMarginPct,
                     ),
                     child: RadioListTile<AppTheme>(
                       toggleable: true,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      tileColor: Theme.of(context)
-                          .colorScheme
-                          .onTertiary
-                          .withOpacity(0.2),
+                      tileColor: colorScheme.onTertiary.withOpacity(0.2),
                       value: AppTheme.light,
                       groupValue: currTheme,
                       activeColor: Colors.white,
                       title: Text(
-                        AppLocalization.of(context)!
-                            .getTranslatedValues("lightTheme")!,
+                        localizedValueOf("lightTheme"),
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
                           fontSize: 18,
                           color: currTheme == AppTheme.light
                               ? Colors.white
-                              : Theme.of(context).colorScheme.onTertiary,
+                              : colorScheme.onTertiary,
                         ),
                       ),
                       secondary: Container(
@@ -777,10 +761,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           border: Border.all(
                             color: currTheme == AppTheme.light
                                 ? Colors.white
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onTertiary
-                                    .withOpacity(0.2),
+                                : colorScheme.onTertiary.withOpacity(0.2),
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -801,21 +782,17 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   ),
                   SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.02,
+                    height: size.height * 0.02,
                   ),
                   Container(
                     decoration: BoxDecoration(
                       color: currTheme == AppTheme.dark
                           ? Theme.of(context).primaryColor
-                          : Theme.of(context)
-                              .colorScheme
-                              .onTertiary
-                              .withOpacity(0.1),
+                          : colorScheme.onTertiary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     margin: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width *
-                          UiUtils.hzMarginPct,
+                      horizontal: size.width * UiUtils.hzMarginPct,
                     ),
                     child: RadioListTile<AppTheme>(
                       toggleable: true,
@@ -823,14 +800,13 @@ class _MenuScreenState extends State<MenuScreen> {
                       groupValue: currTheme,
                       activeColor: Colors.white,
                       title: Text(
-                        AppLocalization.of(context)!
-                            .getTranslatedValues("darkTheme")!,
+                        localizedValueOf("darkTheme"),
                         style: TextStyle(
                           fontWeight: FontWeights.medium,
                           fontSize: 18,
                           color: currTheme == AppTheme.dark
                               ? Colors.white
-                              : Theme.of(context).colorScheme.onTertiary,
+                              : colorScheme.onTertiary,
                         ),
                       ),
                       secondary: Container(
@@ -838,10 +814,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           border: Border.all(
                             color: currTheme == AppTheme.dark
                                 ? Colors.white
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onTertiary
-                                    .withOpacity(0.2),
+                                : colorScheme.onTertiary.withOpacity(0.2),
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -861,34 +834,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       },
                     ),
                   ),
-                  // const Spacer(),
-                  // Padding(
-                  //   padding: EdgeInsets.symmetric(
-                  //     vertical: 44,
-                  //     horizontal: MediaQuery.of(context).size.width *
-                  //         UiUtils.hzMarginPct,
-                  //   ),
-                  //   child: TextButton(
-                  //     onPressed: Navigator.of(context).pop,
-                  //     style: TextButton.styleFrom(
-                  //       backgroundColor: Theme.of(context).primaryColor,
-                  //       shape: RoundedRectangleBorder(
-                  //         borderRadius: BorderRadius.circular(8),
-                  //       ),
-                  //     ),
-                  //     child: Text(
-                  //       AppLocalization.of(context)!
-                  //           .getTranslatedValues("save")!,
-                  //       style: GoogleFonts.nunito(
-                  //         textStyle: TextStyle(
-                  //           fontWeight: FontWeights.semiBold,
-                  //           fontSize: 18,
-                  //           color: Theme.of(context).colorScheme.background,
-                  //         ),
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
+                  
                 ],
               );
             },
@@ -898,7 +844,7 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  void languageSelectBottomSheet() {
+  void _showLanguageSelector() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -924,10 +870,6 @@ class _MenuScreenState extends State<MenuScreen> {
                         QuizTypes.quizZone),
                     userId: context.read<UserDetailsCubit>().userId(),
                   );
-              context.read<QuizoneCategoryCubit>().getQuizCategoryWithUserId(
-                    languageId: UiUtils.getCurrentQuestionLanguageId(context),
-                    userId: context.read<UserDetailsCubit>().userId(),
-                  );
               Navigator.of(context).pop();
             },
             builder: (context, state) {
@@ -945,8 +887,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   children: [
                     /// Title
                     Text(
-                      AppLocalization.of(context)!
-                          .getTranslatedValues("language")!,
+                      localizedValueOf("language"),
                       style: textStyle,
                     ),
                     const Divider(),
@@ -998,31 +939,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       },
                     ),
 
-                    // const Spacer(),
-                    //
-                    // /// Save Btn
-                    // Container(
-                    //   width: MediaQuery.of(context).size.width,
-                    //   padding: EdgeInsets.symmetric(
-                    //     vertical: 30,
-                    //     horizontal: MediaQuery.of(context).size.width *
-                    //         UiUtils.hzMarginPct,
-                    //   ),
-                    //   child: TextButton(
-                    //     onPressed: Navigator.of(context).pop,
-                    //     style: TextButton.styleFrom(
-                    //       backgroundColor: Theme.of(context).primaryColor,
-                    //       shape: RoundedRectangleBorder(
-                    //         borderRadius: BorderRadius.circular(8),
-                    //       ),
-                    //     ),
-                    //     child: Text(
-                    //       AppLocalization.of(context)!
-                    //           .getTranslatedValues("save")!,
-                    //       style: textStyle,
-                    //     ),
-                    //   ),
-                    // ),
+                    
                   ],
                 ),
               );
@@ -1058,7 +975,7 @@ class _MenuScreenState extends State<MenuScreen> {
               SvgPicture.asset(UiUtils.getImagePath("logout_acc.svg")),
               const SizedBox(height: 32),
               Text(
-                "Logout!",
+                localizedValueOf(logoutLbl),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 22,
@@ -1068,7 +985,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
               const SizedBox(height: 19),
               Text(
-                "Are you sure you want to logout your account?",
+                localizedValueOf(logoutDialogLbl),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -1101,7 +1018,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       MaterialStatePropertyAll(Theme.of(context).primaryColor),
                 ),
                 child: Text(
-                  "Yes, Logout",
+                  localizedValueOf("yesLogoutLbl"),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -1113,7 +1030,7 @@ class _MenuScreenState extends State<MenuScreen> {
               TextButton(
                 onPressed: Navigator.of(context).pop,
                 child: Text(
-                  "Keep, Login",
+                  localizedValueOf("stayLoggedLbl"),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -1153,7 +1070,7 @@ class _MenuScreenState extends State<MenuScreen> {
               SvgPicture.asset(UiUtils.getImagePath("delete_acc.svg")),
               const SizedBox(height: 32),
               Text(
-                "Delete Account",
+                localizedValueOf("deleteAccountLbl"),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 22,
@@ -1163,7 +1080,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
               const SizedBox(height: 19),
               Text(
-                "Are you sure you want to Delete your account?",
+                localizedValueOf("deleteAccConfirmation"),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -1183,7 +1100,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       MaterialStatePropertyAll(Theme.of(context).primaryColor),
                 ),
                 child: Text(
-                  "Yes, Delete",
+                  localizedValueOf("yesDeleteAcc"),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -1195,7 +1112,7 @@ class _MenuScreenState extends State<MenuScreen> {
               TextButton(
                 onPressed: Navigator.of(context).pop,
                 child: Text(
-                  "Keep, Account",
+                  localizedValueOf("keepAccount"),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -1208,45 +1125,6 @@ class _MenuScreenState extends State<MenuScreen> {
         );
       },
     );
-    // final _textStyle = TextStyle(
-    //   color: Theme.of(context).colorScheme.onTertiary,
-    // );
-    // showDialog<bool>(
-    //   context: context,
-    //   builder: (_) => AlertDialog(
-    //     content: Text(
-    //       AppLocalization.of(context)!
-    //           .getTranslatedValues(deleteAccountConfirmationKey)!,
-    //       style: _textStyle,
-    //     ),
-    //     actions: [
-    //       TextButton(
-    //         onPressed: () {
-    //           Navigator.of(context).pop(true);
-    //         },
-    //         child: Text(
-    //           AppLocalization.of(context)!.getTranslatedValues("yesBtn")!,
-    //           style: _textStyle,
-    //         ),
-    //       ),
-    //       TextButton(
-    //         onPressed: () {
-    //           Navigator.of(context).pop(false);
-    //         },
-    //         child: Text(
-    //           AppLocalization.of(context)!.getTranslatedValues("noBtn")!,
-    //           style: _textStyle,
-    //         ),
-    //       ),
-    //     ],
-    //   ),
-    // ).then((delete) {
-    //   if (delete!) {
-    //     context.read<DeleteAccountCubit>().deleteUserAccount(
-    //           userId: context.read<UserDetailsCubit>().getUserId(),
-    //         );
-    //   }
-    // });
   }
 
   void editProfileFieldBottomSheet(
