@@ -1,5 +1,5 @@
-import 'package:flutterquiz/features/statistic/statisticException.dart';
 import 'package:flutterquiz/features/statistic/models/statisticModel.dart';
+import 'package:flutterquiz/features/statistic/statisticException.dart';
 import 'package:flutterquiz/features/statistic/statisticRemoteDataSource.dart';
 
 class StatisticRepository {
