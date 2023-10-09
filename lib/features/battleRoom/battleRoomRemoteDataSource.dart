@@ -2,8 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutterquiz/features/battleRoom/battleRoomExecption.dart';
+import 'package:flutterquiz/features/systemConfig/cubits/systemConfigCubit.dart';
 import 'package:flutterquiz/utils/api_utils.dart';
 import 'package:flutterquiz/utils/constants/api_body_parameter_labels.dart';
 import 'package:flutterquiz/utils/constants/constants.dart';
@@ -268,7 +271,55 @@ class BattleRoomRemoteDataSource {
       throw BattleRoomException(errorMessageCode: defaultErrorMessageCode);
     }
   }
-
+Future<DocumentSnapshot> createBattleRoomWithBot({
+    required String categoryId,
+    required String name,
+    required String profileUrl,
+    required String uid,
+    String? roomCode,
+    String? roomType,
+    int? entryFee,
+    String? botName,
+    required String questionLanguageId,
+    required BuildContext context,
+  }) async {
+    try {
+      //hasLeft,categoryId
+      DocumentReference documentReference =
+          await _firebaseFirestore.collection(battleRoomCollection).add({
+        "createdBy": uid,
+        "categoryId": categoryId,
+        "languageId": questionLanguageId,
+        "roomCode": roomCode ?? "",
+        "entryFee": entryFee ?? 0,
+        "readyToPlay": true,
+        "user1": {
+          "name": name,
+          "points": 0,
+          "correctAnswers": 0,
+          "answers": [],
+          "uid": uid,
+          "profileUrl": profileUrl
+        },
+        "user2": {
+          "name": botName ?? "Robot",
+          "points": 0,
+          "correctAnswers": 0,
+          "answers": [],
+          "uid": "000",
+          "profileUrl": context.read<SystemConfigCubit>().botImage,
+        },
+        "createdAt": Timestamp.now(),
+      });
+      return await documentReference.get();
+    } on SocketException catch (_) {
+      throw BattleRoomException(errorMessageCode: noInternetCode);
+    } on PlatformException catch (_) {
+      throw BattleRoomException(errorMessageCode: unableToCreateRoomCode);
+    } catch (_) {
+      throw BattleRoomException(errorMessageCode: defaultErrorMessageCode);
+    }
+  }
   //create mutliUserBattleRoom
   Future<DocumentSnapshot> createMutliUserBattleRoom(
       {required String categoryId,

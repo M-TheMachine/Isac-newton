@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutterquiz/features/battleRoom/battleRoomRemoteDataSource.dart';
 import 'package:flutterquiz/features/battleRoom/models/battleRoom.dart';
 import 'package:flutterquiz/features/battleRoom/models/message.dart';
@@ -75,6 +76,36 @@ class BattleRoomRepository {
     }
   }
 
+  Future<DocumentSnapshot> createBattleRoomWithBot({
+    required String categoryId,
+    required String name,
+    required String profileUrl,
+    required String uid,
+    String? roomCode,
+    String? roomType,
+    int? entryFee,
+    String? botName,
+    required String questionLanguageId,
+    required BuildContext context,
+  }) async {
+    try {
+      return await _battleRoomRemoteDataSource.createBattleRoomWithBot(
+        categoryId: categoryId,
+        name: name,
+        profileUrl: profileUrl,
+        uid: uid,
+        botName: botName,
+        entryFee: entryFee,
+        roomCode: roomCode,
+        roomType: roomType,
+        questionLanguageId: questionLanguageId,
+        context: context,
+      );
+    } catch (e) {
+      throw BattleRoomException(errorMessageCode: e.toString());
+    }
+  }
+
   //join multi user battle room
   Future<Map<String, dynamic>> joinBattleRoomFrd(
       {String? name,
@@ -89,20 +120,17 @@ class BattleRoomRepository {
 
       //invalid room code
       if (querySnapshot.docs.isEmpty) {
-        throw BattleRoomException(
-            errorMessageCode: roomCodeInvalidCode); //invalid roomcode
+        throw BattleRoomException(errorMessageCode: roomCodeInvalidCode);
       }
+      final roomData = querySnapshot.docs.first.data() as Map<String, dynamic>;
 
       //game started code
-      if ((querySnapshot.docs.first.data()
-          as Map<String, dynamic>)['readyToPlay']) {
+      if (roomData['readyToPlay']) {
         throw BattleRoomException(errorMessageCode: gameStartedCode);
       }
 
       //not enough coins
-      if ((querySnapshot.docs.first.data()
-              as Map<String, dynamic>)['entryFee'] >
-          currentCoin) {
+      if (roomData['entryFee'] > currentCoin) {
         throw BattleRoomException(errorMessageCode: notEnoughCoinsCode);
       }
 
@@ -120,15 +148,16 @@ class BattleRoomRepository {
       print("GetSomeData$questions");
 
       //get roomRef
-      DocumentReference documentReference = querySnapshot.docs.first.reference;
+      final documentReference = querySnapshot.docs.first.reference;
       //using transaction so we get latest document before updating roomDocument
       return FirebaseFirestore.instance.runTransaction((transaction) async {
         //get latest document
-        DocumentSnapshot documentSnapshot = await documentReference.get();
-        Map user2Details =
-            Map.from(documentSnapshot.data() as Map<String, dynamic>)['user2'];
+        final documentSnapshot = await documentReference.get();
+        final docData = documentSnapshot.data() as Map<String, dynamic>;
 
-        if (user2Details['uid'].toString().isEmpty) {
+        final user2 = docData['user2'] as Map<String, dynamic>;
+
+        if (user2['uid'].toString().isEmpty) {
           //join as user2
           transaction.update(documentReference, {
             "user2.name": name,
@@ -185,31 +214,29 @@ class BattleRoomRepository {
 
       //invalid room code
       if (querySnapshot.docs.isEmpty) {
-        throw BattleRoomException(
-            errorMessageCode: roomCodeInvalidCode); //invalid roomcode
+        throw BattleRoomException(errorMessageCode: roomCodeInvalidCode);
       }
+      final roomData = querySnapshot.docs.first.data() as Map<String, dynamic>;
 
       //game started code
-      if ((querySnapshot.docs.first.data()
-          as Map<String, dynamic>)['readyToPlay']) {
+      if (roomData['readyToPlay']) {
         throw BattleRoomException(errorMessageCode: gameStartedCode);
       }
 
       //not enough coins
-      if ((querySnapshot.docs.first.data()
-              as Map<String, dynamic>)['entryFee'] >
-          currentCoin) {
+      if (roomData['entryFee'] > currentCoin) {
         throw BattleRoomException(errorMessageCode: notEnoughCoinsCode);
       }
 
       //fetch questions for quiz
       final questions = await getQuestions(
-          categoryId: "",
-          matchId: roomCode!,
-          forMultiUser: true,
-          roomCreater: false,
-          roomDocumentId: querySnapshot.docs.first.id,
-          languageId: defaultQuestionLanguageId);
+        categoryId: "",
+        matchId: roomCode!,
+        forMultiUser: true,
+        roomCreater: false,
+        roomDocumentId: querySnapshot.docs.first.id,
+        languageId: defaultQuestionLanguageId,
+      );
 
       //get roomRef
       DocumentReference documentReference = querySnapshot.docs.first.reference;
@@ -217,29 +244,29 @@ class BattleRoomRepository {
       //using transaction so we get latest document before updating roomDocument
       return FirebaseFirestore.instance.runTransaction((transaction) async {
         //get latest document
-        DocumentSnapshot documentSnapshot = await documentReference.get();
-        Map? user4Details =
-            Map.from(documentSnapshot.data() as Map<String, dynamic>)['user4'];
-        Map? user3Details =
-            Map.from(documentSnapshot.data() as Map<String, dynamic>)['user3'];
-        Map user2Details =
-            Map.from(documentSnapshot.data() as Map<String, dynamic>)['user2'];
+        final documentSnapshot = await documentReference.get();
+        final docData = documentSnapshot.data() as Map<String, dynamic>;
 
-        if (user2Details['uid'].toString().isEmpty) {
+        final user2 = docData['user2'] as Map<String, dynamic>;
+        final user3 = docData['user3'] as Map<String, dynamic>;
+        final user4 = docData['user4'] as Map<String, dynamic>;
+
+        /// Join as available user
+        if (user2['uid'].toString().isEmpty) {
           //join as user2
           transaction.update(documentReference, {
             "user2.name": name,
             "user2.uid": uid,
             "user2.profileUrl": profileUrl,
           });
-        } else if (user3Details!['uid'].toString().isEmpty) {
+        } else if (user3['uid'].toString().isEmpty) {
           //join as user3
           transaction.update(documentReference, {
             "user3.name": name,
             "user3.uid": uid,
             "user3.profileUrl": profileUrl,
           });
-        } else if (user4Details!['uid'].toString().isEmpty) {
+        } else if (user4['uid'].toString().isEmpty) {
           //join as user4
 
           transaction.update(documentReference, {
@@ -261,9 +288,13 @@ class BattleRoomRepository {
 
   //subscribe to battle room
   Stream<DocumentSnapshot> subscribeToBattleRoom(
-      String? battleRoomDocumentId, bool forMultiUser) {
+    String? battleRoomDocumentId,
+    bool forMultiUser,
+  ) {
     return _battleRoomRemoteDataSource.subscribeToBattleRoom(
-        battleRoomDocumentId, forMultiUser);
+      battleRoomDocumentId,
+      forMultiUser,
+    );
   }
 
   //delete room by id
