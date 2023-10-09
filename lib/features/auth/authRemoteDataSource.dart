@@ -5,13 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart' as fcm;
 import 'package:flutterquiz/features/auth/auhtException.dart';
 import 'package:flutterquiz/features/auth/cubits/authCubit.dart';
-import 'package:flutterquiz/utils/constants/api_body_parameter_labels.dart';
 import 'package:flutterquiz/utils/api_utils.dart';
+import 'package:flutterquiz/utils/constants/api_body_parameter_labels.dart';
 import 'package:flutterquiz/utils/constants/constants.dart';
 import 'package:flutterquiz/utils/constants/error_message_keys.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
-import 'package:apple_sign_in_safety/apple_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthRemoteDataSource {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -223,37 +223,27 @@ class AuthRemoteDataSource {
 
   Future<UserCredential> signInWithApple() async {
     try {
-      final AuthorizationResult appleResult =
-          await AppleSignIn.performRequests([
-        const AppleIdRequest(requestedScopes: [Scope.email, Scope.fullName])
+      final credential = await SignInWithApple.getAppleIDCredential(scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
       ]);
+      final oAuthCredential = OAuthProvider('apple.com').credential(
+        idToken: credential.identityToken,
+        accessToken: credential.authorizationCode,
+      );
+      final userCredential =
+          await _firebaseAuth.signInWithCredential(oAuthCredential);
 
-      if (appleResult.status == AuthorizationStatus.authorized) {
-        final appleIdCredential = appleResult.credential!;
-        final oAuthProvider = OAuthProvider('apple.com');
-        final credential = oAuthProvider.credential(
-          idToken: String.fromCharCodes(appleIdCredential.identityToken!),
-          accessToken:
-              String.fromCharCodes(appleIdCredential.authorizationCode!),
-        );
-        final UserCredential userCredential =
-            await _firebaseAuth.signInWithCredential(credential);
-        if (userCredential.additionalUserInfo!.isNewUser) {
-          final user = userCredential.user!;
-          final String givenName = appleIdCredential.fullName!.givenName ?? "";
+      if (userCredential.additionalUserInfo!.isNewUser) {
+        final user = userCredential.user!;
+        final givenName = credential.givenName ?? "";
+        final familyName = credential.familyName ?? "";
 
-          final String familyName =
-              appleIdCredential.fullName!.familyName ?? "";
-          await user.updateDisplayName("$givenName $familyName");
-          await user.reload();
-        }
-
-        return userCredential;
-      } else if (appleResult.status == AuthorizationStatus.error) {
-        throw AuthException(errorMessageCode: defaultErrorMessageCode);
-      } else {
-        throw AuthException(errorMessageCode: defaultErrorMessageCode);
+        await user.updateDisplayName("$givenName $familyName");
+        await user.reload();
+      
       }
+      return userCredential;
     } catch (error) {
       throw AuthException(errorMessageCode: defaultErrorMessageCode);
     }
