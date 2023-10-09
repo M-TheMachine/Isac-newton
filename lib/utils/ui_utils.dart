@@ -65,17 +65,6 @@ class UiUtils {
     )
   ];
 
-  void bottomSheet({required BuildContext context, required Widget child}) {
-    showModalBottomSheet(
-      context: context,
-      enableDrag: true,
-      isDismissible: true,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: bottomSheetTopRadius),
-      builder: (_) => child,
-    );
-  }
-
   static String buildGuessTheWordQuestionAnswer(List<String> submittedAnswer) {
     String answer = "";
     for (var element in submittedAnswer) {
