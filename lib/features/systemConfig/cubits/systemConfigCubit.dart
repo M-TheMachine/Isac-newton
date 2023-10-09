@@ -396,4 +396,12 @@ class SystemConfigCubit extends Cubit<SystemConfigState> {
           .systemConfigModel
           .lifelineDeductCoins)
       : 0;
+
+  List<String> get defaultAvatarImages => state is SystemConfigFetchSuccess
+      ? (state as SystemConfigFetchSuccess).defaultProfileImages
+      : [];
+
+  String get botImage => state is SystemConfigFetchSuccess
+      ? (state as SystemConfigFetchSuccess).systemConfigModel.botImage
+      : "";
 }
