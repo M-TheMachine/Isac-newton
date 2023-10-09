@@ -47,9 +47,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void initState() {
+    super.initState();
     initAnimations();
     loadSystemConfig();
-    super.initState();
   }
 
   void loadSystemConfig() async {
