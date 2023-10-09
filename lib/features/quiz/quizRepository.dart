@@ -311,4 +311,17 @@ class QuizRepository {
       throw QuizException(errorMessageCode: e.toString());
     }
   }
+  Future<void> unlockPremiumCategory({
+    required String categoryId,
+    String? subCategoryId,
+  }) async {
+    try {
+      await _quizRemoteDataSource.unlockPremiumCategory(
+        categoryId: categoryId,
+        subCategoryId: subCategoryId,
+      );
+    } catch (e) {
+      throw QuizException(errorMessageCode: e.toString());
+    }
+  }
 }
