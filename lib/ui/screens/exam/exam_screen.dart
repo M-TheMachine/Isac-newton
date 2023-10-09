@@ -20,7 +20,7 @@ import 'package:flutterquiz/utils/answer_encryption.dart';
 import 'package:flutterquiz/utils/constants/string_labels.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
 import 'package:ios_insecure_screen_detector/ios_insecure_screen_detector.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class ExamScreen extends StatefulWidget {
   const ExamScreen({super.key});
@@ -62,7 +62,7 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
 
     //wake lock enable so phone will not lock automatically after sometime
 
-    Wakelock.enable();
+    WakelockPlus.enable();
 
     WidgetsBinding.instance.addObserver(this);
 
@@ -133,7 +133,7 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
   void dispose() {
     canGiveExamAgainTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    Wakelock.disable();
+    WakelockPlus.disable();
     _iosInsecureScreenDetector?.dispose();
     if (Platform.isAndroid) {
       FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
