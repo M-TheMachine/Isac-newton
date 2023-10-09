@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +9,7 @@ import 'package:flutterquiz/features/battleRoom/cubits/battleRoomCubit.dart';
 import 'package:flutterquiz/features/profileManagement/cubits/userDetailsCubit.dart';
 import 'package:flutterquiz/features/profileManagement/models/userProfile.dart';
 import 'package:flutterquiz/features/quiz/models/userBattleRoomDetails.dart';
-import 'package:flutterquiz/ui/screens/battle/widgets/findingOpponentLetterAnimation.dart';
+import 'package:flutterquiz/ui/screens/battle/widgets/finding_opponent_animation.dart';
 import 'package:flutterquiz/ui/screens/battle/widgets/userFoundMapContainer.dart';
 import 'package:flutterquiz/ui/widgets/circularImageContainer.dart';
 import 'package:flutterquiz/ui/widgets/customBackButton.dart';
@@ -20,7 +19,7 @@ import 'package:flutterquiz/ui/widgets/exitGameDialog.dart';
 import 'package:flutterquiz/utils/constants/constants.dart';
 import 'package:flutterquiz/utils/constants/error_message_keys.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class BattleRoomFindOpponentScreen extends StatefulWidget {
   const BattleRoomFindOpponentScreen({super.key, required this.categoryId});
@@ -75,10 +74,13 @@ class _BattleRoomFindOpponentScreenState
   late int waitingTime = waitForOpponentDurationInSeconds;
   Timer? waitForOpponentTimer;
 
+  bool playWithBot = false;
+
   @override
   void initState() {
+    super.initState();
     addImages();
-    Wakelock.enable();
+    WakelockPlus.enable();
     Future.delayed(const Duration(milliseconds: 1000), () {
       //search for battle room after initial animation completed
       searchBattleRoom();
@@ -86,7 +88,6 @@ class _BattleRoomFindOpponentScreenState
       letterAnimationController.repeat(reverse: false);
     });
     WidgetsBinding.instance.addObserver(this);
-    super.initState();
   }
 
   @override
@@ -101,7 +102,6 @@ class _BattleRoomFindOpponentScreenState
 
   @override
   void dispose() {
-    Wakelock.disable();
     scrollController.dispose();
     letterAnimationController.dispose();
     quizCountDownAnimationController.dispose();
@@ -114,6 +114,7 @@ class _BattleRoomFindOpponentScreenState
     //room created afterwards
     if (Routes.currentRoute == Routes.battleRoomFindOpponent) {
       Routes.currentRoute = Routes.home;
+      WakelockPlus.disable();
     }
     super.dispose();
   }
@@ -292,7 +293,7 @@ class _BattleRoomFindOpponentScreenState
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              FindOpponentLetterAnimation(
+              FindingOpponentAnimation(
                   animationController: letterAnimationController),
               const SizedBox(
                 height: 2.5,
@@ -445,50 +446,64 @@ class _BattleRoomFindOpponentScreenState
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(height: MediaQuery.of(context).size.height * (0.05)),
-            Text(
-              AppLocalization.of(context)!
-                  .getTranslatedValues('opponentNotFoundLbl')!,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).primaryColor,
-                fontSize: 25,
+              if (playWithBot) ...[
+              Text(
+                AppLocalization.of(context)!
+                    .getTranslatedValues("battlePreparingLbl")!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontSize: 25,
+                ),
               ),
-            ),
             SizedBox(height: MediaQuery.of(context).size.height * (0.025)),
-            Platform.isIOS
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      CustomRoundedButton(
-                        widthPercentage: 0.375,
-                        backgroundColor: Theme.of(context).primaryColor,
-                        buttonTitle: AppLocalization.of(context)!
-                            .getTranslatedValues('retryLbl')!,
-                        radius: 5,
-                        showBorder: false,
-                        height: 40,
-                        titleColor: Theme.of(context).colorScheme.background,
-                        elevation: 5.0,
-                        onTap: () {
-                          retryToSearchBattleRoom();
-                        },
-                      ),
-                      CustomRoundedButton(
-                        widthPercentage: 0.375,
-                        backgroundColor: Theme.of(context).primaryColor,
-                        buttonTitle: "Back",
-                        radius: 5,
-                        showBorder: false,
-                        height: 40,
-                        titleColor: Theme.of(context).colorScheme.background,
-                        elevation: 5.0,
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ],
-                  )
-                : CustomRoundedButton(
+            ] else ...[
+              Text(
+                AppLocalization.of(context)!
+                    .getTranslatedValues('opponentNotFoundLbl')!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontSize: 25,
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).size.height * (0.025)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  CustomRoundedButton(
+                    widthPercentage: 0.375,
+                    backgroundColor: Theme.of(context).primaryColor,
+                    buttonTitle: AppLocalization.of(context)!
+                        .getTranslatedValues("playWithBotLbl"),
+                    radius: 5,
+                    showBorder: false,
+                    height: 40,
+                    titleColor: Theme.of(context).colorScheme.background,
+                    elevation: 5.0,
+                    onTap: () {
+                      /// To avoid button Spamming
+                      if (playWithBot) return;
+
+                      setState(() => playWithBot = true);
+
+                      UserProfile userProfile =
+                          context.read<UserDetailsCubit>().getUserProfile();
+                      context.read<BattleRoomCubit>().createRoomWithBot(
+                            categoryId: widget.categoryId,
+                            shouldGenerateRoomCode: true,
+                            name: userProfile.name!,
+                            uid: userProfile.userId!,
+                            profileUrl: userProfile.profileUrl!,
+                            botName: AppLocalization.of(context)!
+                                .getTranslatedValues("botNameLbl"),
+                            questionLanguageId:
+                                UiUtils.getCurrentQuestionLanguageId(context),
+                            context: context,
+                          );
+                    },
+                  ),
+            CustomRoundedButton(
                     widthPercentage: 0.375,
                     backgroundColor: Theme.of(context).primaryColor,
                     buttonTitle: AppLocalization.of(context)!
@@ -498,11 +513,12 @@ class _BattleRoomFindOpponentScreenState
                     height: 40,
                     titleColor: Theme.of(context).colorScheme.background,
                     elevation: 5.0,
-                    onTap: () {
-                      retryToSearchBattleRoom();
-                    },
+                    onTap: retryToSearchBattleRoom,
                   ),
-            SizedBox(height: MediaQuery.of(context).size.height * (0.03)),
+                ],
+              ),
+              SizedBox(height: MediaQuery.of(context).size.height * (0.03)),
+            ],
             const UserFoundMapContainer(),
           ],
         ),
@@ -640,7 +656,14 @@ class _BattleRoomFindOpponentScreenState
               waitForOpponentTimer?.cancel();
               await Future.delayed(const Duration(milliseconds: 500));
               await quizCountDownAnimationController.forward();
-              Navigator.of(context).pushReplacementNamed(Routes.battleRoomQuiz);
+              ///
+              await WakelockPlus.disable();
+              Navigator.of(context).pushReplacementNamed(
+                Routes.battleRoomQuiz,
+                arguments: {
+                  "play_with_bot": playWithBot,
+                },
+              );
             } else if (state is BattleRoomFailure) {
               if (state.errorMessageCode == unauthorizedAccessCode) {
                 UiUtils.showAlreadyLoggedInDialog(context: context);
