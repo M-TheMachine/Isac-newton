@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutterquiz/features/quiz/quizException.dart';
@@ -664,6 +665,40 @@ class QuizRemoteDataSource {
       if (responseJson['error']) {
         print(responseJson);
         throw QuizException(errorMessageCode: responseJson['message']);
+      }
+    } on SocketException catch (_) {
+      throw QuizException(errorMessageCode: noInternetCode);
+    } on QuizException catch (e) {
+      throw QuizException(errorMessageCode: e.toString());
+    } catch (e) {
+      throw QuizException(errorMessageCode: defaultErrorMessageCode);
+    }
+  }
+  Future<void> unlockPremiumCategory({
+    required String categoryId,
+    String? subCategoryId,
+  }) async {
+    try {
+      final body = {
+        accessValueKey: accessValue,
+        categoryKey: categoryId,
+        subCategoryKey: subCategoryId,
+      };
+
+      if (subCategoryId == null || subCategoryId.isEmpty) {
+        body.remove(subCategoryKey);
+      }
+
+      log("Body $body", name: "unlockPremiumCategory API");
+      final rawRes = await http.post(
+        Uri.parse(unlockPremiumCategoryUrl),
+        body: body,
+        headers: await ApiUtils.getHeaders(),
+      );
+      final jsonRes = jsonDecode(rawRes.body);
+
+      if (jsonRes['error']) {
+        throw QuizException(errorMessageCode: jsonRes['message']);
       }
     } on SocketException catch (_) {
       throw QuizException(errorMessageCode: noInternetCode);
