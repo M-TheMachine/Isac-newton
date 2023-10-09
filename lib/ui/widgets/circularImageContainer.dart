@@ -9,13 +9,15 @@ class CircularImageContainer extends StatelessWidget {
   final double height;
   final bool isSvg;
   final Color? backgroundColor;
-  const CircularImageContainer(
-      {super.key,
-      required this.height,
-      required this.imagePath,
-      required this.width,
-      this.backgroundColor,
-      this.isSvg = false});
+  
+  const CircularImageContainer({
+    super.key,
+    required this.height,
+    required this.imagePath,
+    required this.width,
+    this.backgroundColor,
+    this.isSvg = false,
+  });
 
   @override
   Widget build(BuildContext context) {
