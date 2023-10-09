@@ -166,29 +166,25 @@ class _ReviewAnswersScreenState extends State<ReviewAnswersScreen> {
     );
 
     /// if question isn't attempted, only show which answer is correct.
+    final background = Theme.of(context).colorScheme.background;
     if (!question.attempted) {
-      return correctAnswerId == optionId
-          ? Colors.green
-          : Theme.of(context).colorScheme.background;
+      return correctAnswerId == optionId ? Colors.green : background;
     }
 
     if (question.submittedAnswerId == correctAnswerId) {
-      return question.submittedAnswerId == optionId
-          ? Colors.green
-          : Theme.of(context).colorScheme.background;
+      return question.submittedAnswerId == optionId ? Colors.green : background;
     } else {
       if (question.submittedAnswerId == optionId) return Colors.red;
 
-      return correctAnswerId == optionId
-          ? Colors.green
-          : Theme.of(context).colorScheme.background;
+      return correctAnswerId == optionId ? Colors.green : background;
     }
   }
 
   Color getOptionTextColor(Question question, String? optionId) {
     String correctAnswerId = AnswerEncryption.decryptCorrectAnswer(
         rawKey: context.read<AuthCubit>().getUserFirebaseId(),
-        correctAnswer: question.correctAnswer!);
+      correctAnswer: question.correctAnswer!,
+    );
 
     var scheme = Theme.of(context).colorScheme;
 
