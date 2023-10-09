@@ -2,6 +2,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutterquiz/app/app_localization.dart';
 import 'package:flutterquiz/features/profileManagement/cubits/userDetailsCubit.dart';
@@ -11,22 +12,18 @@ import 'package:flutterquiz/ui/widgets/customRoundedButton.dart';
 import 'package:flutterquiz/utils/constants/fonts.dart';
 import 'package:flutterquiz/utils/constants/string_labels.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ReferAndEarnScreen extends StatelessWidget {
   const ReferAndEarnScreen({super.key});
 
-  static const vtGap = 20.0;
-
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     final referCode =
         context.read<UserDetailsCubit>().getUserProfile().referCode!;
 
-    var colorScheme = Theme.of(context).colorScheme;
+    final size = MediaQuery.of(context).size;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -111,7 +108,10 @@ class ReferAndEarnScreen extends StatelessWidget {
                       SizedBox(
                         width: size.width * .8,
                         child: Text(
-                          "${AppLocalization.of(context)!.getTranslatedValues("referFrdLbl")!} ${AppLocalization.of(context)!.getTranslatedValues(youWillGetKey)!} ${context.read<SystemConfigCubit>().getEarnCoin()} ${AppLocalization.of(context)!.getTranslatedValues(coinsLbl)!.toLowerCase()}.\n${AppLocalization.of(context)!.getTranslatedValues(theyWillGetKey)!} ${context.read<SystemConfigCubit>().getReferCoin()} ${AppLocalization.of(context)!.getTranslatedValues(coinsLbl)!.toLowerCase()}.",
+                          "${AppLocalization.of(context)!.getTranslatedValues("referFrdLbl")!} ${AppLocalization.of(context)!.getTranslatedValues(youWillGetKey)!}"
+                          " ${context.read<SystemConfigCubit>().getEarnCoin()} ${AppLocalization.of(context)!.getTranslatedValues(coinsLbl)!.toLowerCase()}."
+                          "\n${AppLocalization.of(context)!.getTranslatedValues(theyWillGetKey)!} ${context.read<SystemConfigCubit>().getReferCoin()} "
+                          "${AppLocalization.of(context)!.getTranslatedValues(coinsLbl)!.toLowerCase()}.",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 14,
@@ -184,7 +184,8 @@ class ReferAndEarnScreen extends StatelessWidget {
                                       false);
                                 },
                                 child: Text(
-                                  "Copy\nCode",
+                                  AppLocalization.of(context)!
+                                      .getTranslatedValues("copyCodeLbl")!,
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeights.semiBold,
@@ -206,9 +207,12 @@ class ReferAndEarnScreen extends StatelessWidget {
                             color: colorScheme.background.withOpacity(.8),
                           ),
                           children: [
-                            const TextSpan(text: 'How it works? '),
                             TextSpan(
-                              text: 'Steps',
+                              text:
+                                    '${AppLocalization.of(context)!.getTranslatedValues("howWorksLbl")!} '),
+                            TextSpan(
+                              text: AppLocalization.of(context)!
+                                  .getTranslatedValues("steps")!,
                               style: TextStyle(
                                 color: colorScheme.background,
                                 decoration: TextDecoration.underline,
@@ -223,17 +227,7 @@ class ReferAndEarnScreen extends StatelessWidget {
                                           UiUtils.bottomSheetTopRadius,
                                     ),
                                     builder: (_) {
-                                      final verticalDivider = Row(
-                                        children: [
-                                          const SizedBox(width: 22),
-                                          Container(
-                                            color: const Color(0xFF22C274),
-                                            width: 2,
-                                            height: 68,
-                                          ),
-                                          const Spacer(),
-                                        ],
-                                      );
+                                      
                                       return Container(
                                         decoration: BoxDecoration(
                                           color: Theme.of(context)
@@ -260,14 +254,14 @@ class ReferAndEarnScreen extends StatelessWidget {
                                                     'step_1_title',
                                                     'step_1_desc',
                                                   ),
-                                                  verticalDivider,
+                                                  _vtDivider,
                                                   _buildStep(
                                                     context,
                                                     'step_2',
                                                     'step_2_title',
                                                     'step_2_desc',
                                                   ),
-                                                  verticalDivider,
+                                                  _vtDivider,
                                                   _buildStep(
                                                     context,
                                                     'step_3',
@@ -339,6 +333,18 @@ class ReferAndEarnScreen extends StatelessWidget {
       ),
     );
   }
+
+   static const _vtDivider = Row(
+    children: [
+      SizedBox(width: 22),
+      SizedBox(
+        width: 2,
+        height: 68,
+        child: ColoredBox(color: Color(0xFF22C274)),
+      ),
+      Spacer(),
+    ],
+  );
 
   Row _buildStep(BuildContext context, String step, String title, String desc) {
     final onTertiary = Theme.of(context).colorScheme.onTertiary;
