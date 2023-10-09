@@ -34,7 +34,7 @@ import 'package:flutterquiz/utils/constants/string_labels.dart';
 import 'package:flutterquiz/utils/internet_connectivity.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
 import 'package:flutterquiz/utils/user_utils.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class MultiUserBattleRoomQuizScreen extends StatefulWidget {
   const MultiUserBattleRoomQuizScreen({super.key});
@@ -138,7 +138,7 @@ class _MultiUserBattleRoomQuizScreenState
   void initState() {
     super.initState();
     //add empty messages ofr every user
-    Wakelock.enable();
+    WakelockPlus.enable();
     for (var i = 0; i < maxUsersInGroupBattle; i++) {
       latestMessagesByUsers.add(Message.buildEmptyMessage());
     }
@@ -169,7 +169,7 @@ class _MultiUserBattleRoomQuizScreenState
 
   @override
   void dispose() {
-    Wakelock.disable();
+    WakelockPlus.disable();
     timerAnimationController
         .removeStatusListener(currentUserTimerAnimationStatusListener);
     timerAnimationController.dispose();
