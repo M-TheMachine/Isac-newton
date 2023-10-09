@@ -57,6 +57,8 @@ class ResultScreen extends StatefulWidget {
       myPoints; // will be in use when quiz is not tyoe of battle and live battle
   final List<Question>? questions; //to see reivew answers
   final BattleRoom? battleRoom; //will be in use for battle
+  final bool
+      playWithBot; // used for random battle with robot, users doesn't get any coins or score for playing with bot.
   final String? contestId;
   final Comprehension comprehension; //
   final List<GuessTheWordQuestion>?
@@ -92,6 +94,8 @@ class ResultScreen extends StatefulWidget {
   // and guess the word
   final bool isPlayed; //
 
+  final bool isPremiumCategory;
+
   const ResultScreen({
     super.key,
     required this.isPlayed,
@@ -115,10 +119,12 @@ class ResultScreen extends StatefulWidget {
     this.entryFee,
     this.categoryId,
     this.subcategoryId,
+    required this.playWithBot,
+    required this.isPremiumCategory,
   });
 
   static Route<dynamic> route(RouteSettings routeSettings) {
-    Map arguments = routeSettings.arguments as Map;
+    Map args = routeSettings.arguments as Map;
     //keys of map are numberOfPlayer,quizType,questions (required)
     //if quizType is not battle and liveBattle need to pass following arguments
     //myPoints
@@ -155,30 +161,29 @@ class ResultScreen extends StatefulWidget {
           ),
         ],
         child: ResultScreen(
-          isPlayed: arguments['isPlayed'] ?? true,
-          comprehension:
-              arguments['comprehension'] ?? Comprehension.fromJson({}),
-          correctExamAnswers: arguments['correctExamAnswers'],
-          incorrectExamAnswers: arguments['incorrectExamAnswers'],
-          exam: arguments['exam'],
-          obtainedMarks: arguments['obtainedMarks'],
-          examCompletedInMinutes: arguments['examCompletedInMinutes'],
-          myPoints: arguments['myPoints'],
-          numberOfPlayer: arguments['numberOfPlayer'],
-          questions: arguments['questions'],
-          battleRoom: arguments['battleRoom'],
-          quizType: arguments['quizType'],
-          subcategoryMaxLevel: arguments['subcategoryMaxLevel'],
-          unlockedLevel: arguments['unlockedLevel'],
-          guessTheWordQuestions: arguments['guessTheWordQuestions'],
-          //
-          categoryId: arguments["categoryId"] ?? "",
-
-          subcategoryId: arguments["subcategoryId"] ?? "",
-          hasUsedAnyLifeline: arguments['hasUsedAnyLifeline'],
-          timeTakenToCompleteQuiz: arguments['timeTakenToCompleteQuiz'],
-          contestId: arguments["contestId"],
-          entryFee: arguments['entryFee'],
+          battleRoom: args['battleRoom'],
+          categoryId: args["categoryId"] ?? "",
+          comprehension: args['comprehension'] ?? Comprehension.fromJson({}),
+          contestId: args["contestId"],
+          correctExamAnswers: args['correctExamAnswers'],
+          entryFee: args['entryFee'],
+          exam: args['exam'],
+          examCompletedInMinutes: args['examCompletedInMinutes'],
+          guessTheWordQuestions: args['guessTheWordQuestions'],
+          hasUsedAnyLifeline: args['hasUsedAnyLifeline'],
+          incorrectExamAnswers: args['incorrectExamAnswers'],
+          isPlayed: args['isPlayed'] ?? true,
+          myPoints: args['myPoints'],
+          numberOfPlayer: args['numberOfPlayer'],
+          obtainedMarks: args['obtainedMarks'],
+          playWithBot: args['play_with_bot'] ?? false,
+          questions: args['questions'],
+          quizType: args['quizType'],
+          subcategoryId: args["subcategoryId"] ?? "",
+          subcategoryMaxLevel: args['subcategoryMaxLevel'],
+          timeTakenToCompleteQuiz: args['timeTakenToCompleteQuiz'],
+          unlockedLevel: args['unlockedLevel'],
+          isPremiumCategory: args['isPremiumCategory'] ?? false,
         ),
       ),
     );
@@ -203,7 +208,9 @@ class _ResultScreenState extends State<ResultScreen> {
     super.initState();
 
     Future.delayed(Duration.zero, () {
-      context.read<InterstitialAdCubit>().showAd(context);
+      if (!widget.isPremiumCategory) {
+        context.read<InterstitialAdCubit>().showAd(context);
+      }
     });
     if (widget.quizType == QuizTypes.battle) {
       battleConfiguration();
@@ -267,7 +274,10 @@ class _ResultScreenState extends State<ResultScreen> {
     if (widget.battleRoom!.user1!.points == widget.battleRoom!.user2!.points) {
       _isWinner = true;
       _winnerId = winnerId;
-      _updateCoinsAndScoreAndStatisticForBattle(widget.battleRoom!.entryFee!);
+      /// No Coins & Score when playing with Robot.
+      if (!widget.playWithBot) {
+        _updateCoinsAndScoreAndStatisticForBattle(widget.battleRoom!.entryFee!);
+      }
     } else {
       if (widget.battleRoom!.user1!.points > widget.battleRoom!.user2!.points) {
         winnerId = widget.battleRoom!.user1!.uid;
@@ -277,8 +287,11 @@ class _ResultScreenState extends State<ResultScreen> {
       await Future.delayed(Duration.zero);
       _isWinner = context.read<UserDetailsCubit>().userId() == winnerId;
       _winnerId = winnerId;
-      _updateCoinsAndScoreAndStatisticForBattle(
-          widget.battleRoom!.entryFee! * 2);
+
+      if (!widget.playWithBot) {
+        _updateCoinsAndScoreAndStatisticForBattle(
+            widget.battleRoom!.entryFee! * 2);
+      }
       //update winner id and _isWinner in ui
       setState(() {});
     }
@@ -463,6 +476,11 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   void _updateCoinsAndScore() {
+    int? points = widget.myPoints;
+    if (widget.isPremiumCategory) {
+      _earnedCoins = _earnedCoins * 2;
+      points = widget.myPoints! * 2;
+    }
     //update score and coins for user
     context.read<UpdateScoreAndCoinsCubit>().updateCoinsAndScore(
           context.read<UserDetailsCubit>().userId(),
@@ -477,7 +495,7 @@ class _ResultScreenState extends State<ResultScreen> {
           coins: _earnedCoins,
         );
 
-    context.read<UserDetailsCubit>().updateScore(widget.myPoints);
+    context.read<UserDetailsCubit>().updateScore(points);
   }
 
   //
@@ -1904,42 +1922,18 @@ class _ResultScreenState extends State<ResultScreen> {
 
   Widget _buildResultButtons(BuildContext context) {
     double betweenButtonSpace = 15.0;
-    if (widget.quizType == QuizTypes.battle) {
-      return Column(
-        children: [
-          SizedBox(height: betweenButtonSpace),
-          _buildReviewAnswersButton(),
-          // SizedBox(height: betweenButtonSpace),
-          _buildShareYourScoreButton(),
-          SizedBox(height: betweenButtonSpace),
-          _buildButton(
-              AppLocalization.of(context)!.getTranslatedValues("homeBtn")!, () {
-            fetchUpdateUserDetails();
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }, context),
-        ],
-      );
-    }
-
-    if (widget.quizType! == QuizTypes.exam) {
-      return Column(
-        children: [
-          _buildShareYourScoreButton(),
-          SizedBox(height: betweenButtonSpace),
-          _buildButton(
-              AppLocalization.of(context)!.getTranslatedValues("homeBtn")!, () {
-            fetchUpdateUserDetails();
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }, context),
-        ],
-      );
-    }
-
+    
     return Column(
       children: [
-        _buildPlayAgainButton(),
-        SizedBox(height: betweenButtonSpace),
-        _buildReviewAnswersButton(),
+        if (widget.quizType! != QuizTypes.exam &&
+            widget.quizType != QuizTypes.battle) ...[
+          _buildPlayAgainButton(),
+        ],
+        if (widget.quizType! != QuizTypes.exam &&
+            widget.quizType! != QuizTypes.selfChallenge) ...[
+          SizedBox(height: betweenButtonSpace),
+          _buildReviewAnswersButton(),
+        ],
         _buildShareYourScoreButton(),
         SizedBox(height: betweenButtonSpace),
         _buildButton(
@@ -1958,9 +1952,6 @@ class _ResultScreenState extends State<ResultScreen> {
   String appbarTitle() {
     String title = "quizResultLbl";
     switch (widget.quizType) {
-      case QuizTypes.quizZone:
-        title = "quizResultLbl";
-        break;
       case QuizTypes.selfChallenge:
         title = "selfChallengeResult";
         break;
