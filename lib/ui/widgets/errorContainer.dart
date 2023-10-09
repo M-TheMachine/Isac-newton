@@ -6,22 +6,23 @@ import 'package:flutterquiz/utils/constants/string_labels.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
 
 class ErrorContainer extends StatelessWidget {
-  final String? errorMessage;
+  final String? errorMessage; // TODO: make it required
   final Function onTapRetry;
   final bool showErrorImage, showRTryButton;
   final double topMargin;
   final Color? errorMessageColor;
   final bool? showBackButton;
 
-  const ErrorContainer(
-      {super.key,
-      this.errorMessageColor,
-      required this.errorMessage,
-      required this.onTapRetry,
-      required this.showErrorImage,
-      this.topMargin = 0.1,
-      this.showBackButton,
-      this.showRTryButton = true});
+  const ErrorContainer({
+    super.key,
+    this.errorMessageColor,
+    required this.errorMessage,
+    required this.onTapRetry,
+    required this.showErrorImage,
+    this.topMargin = 0.1,
+    this.showBackButton,
+    this.showRTryButton = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +47,7 @@ class ErrorContainer extends StatelessWidget {
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
+              // TODO : Refactor Everywhere for AppLocalization.of(context)!.getTranslatedValues(errorMessage) ?? errorMessage
               "$errorMessage :(",
               style: TextStyle(
                   fontSize: 18.0,
