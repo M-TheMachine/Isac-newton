@@ -360,7 +360,6 @@ const coinHistoryKey = "coinHistory";
 const collectedBadgesKey = "collectedBadges";
 const completedInKey = "completedIn";
 const correctKey = "correct";
-const deleteAccountConfirmationKey = "deleteAccountConfirmation";
 const deleteAccountKey = "deleteAccount";
 const deletingAccountKey = "deletingAccount";
 const enterExamKey = "enterExamKey";
