@@ -1,5 +1,5 @@
 import 'package:flutterquiz/utils/constants/constants.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class BookmarkLocalDataSource {
   Future<void> openBox(String boxName) async {
