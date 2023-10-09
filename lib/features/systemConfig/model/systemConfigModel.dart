@@ -68,6 +68,7 @@ class SystemConfigModel {
   late String trueValue;
   late String truefalseMode;
   late String welcomeBonusCoins;
+  late final String botImage;
 
   SystemConfigModel({
     required this.adsEnabled,
@@ -138,6 +139,7 @@ class SystemConfigModel {
     required this.trueValue,
     required this.truefalseMode,
     required this.welcomeBonusCoins,
+    required this.botImage,
   });
 
   SystemConfigModel.fromJson(Map<String, dynamic> json) {
@@ -209,5 +211,6 @@ class SystemConfigModel {
     trueValue = json['true_value'] ?? "";
     truefalseMode = json['true_false_mode'] ?? "";
     welcomeBonusCoins = json['welcome_bonus_coin'] ?? "";
+    botImage = json['bot_image'] ?? "";
   }
 }
