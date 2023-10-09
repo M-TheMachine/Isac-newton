@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutterquiz/app/routes.dart';
 import 'package:flutterquiz/features/battleRoom/battleRoomRepository.dart';
@@ -126,6 +126,33 @@ class BattleRoomCubit extends Cubit<BattleRoomState> {
     }, cancelOnError: true);
   }
 
+void joinBattleRoomWithBot(
+    String battleRoomDocumentId,
+    List<Question> questions,
+    bool type,
+  ) {
+    _battleRoomStreamSubscription = _battleRoomRepository
+        .subscribeToBattleRoom(battleRoomDocumentId, type)
+        .listen(
+      (event) {
+        if (event.exists) {
+          //emit new state
+          BattleRoom battleRoom = BattleRoom.fromDocumentSnapshot(event);
+
+          emit(
+            BattleRoomUserFound(
+              battleRoom: battleRoom,
+              isRoomExist: true,
+              questions: questions,
+              hasLeft: false,
+            ),
+          );
+        }
+      },
+      onError: (e) => emit(BattleRoomFailure(defaultErrorMessageCode)),
+      cancelOnError: true,
+    );
+  }
   void searchRoom(
       {required String categoryId,
       required String name,
@@ -241,6 +268,60 @@ class BattleRoomCubit extends Cubit<BattleRoomState> {
       emit(BattleRoomFailure(e.toString()));
     }
   }
+
+  void createRoomWithBot({
+    required String categoryId,
+    String? name,
+    String? profileUrl,
+    String? uid,
+    int? entryFee,
+    String? botName,
+    String? questionLanguageId,
+    required bool shouldGenerateRoomCode,
+    required BuildContext context,
+  }) async {
+    emit(BattleRoomCreating());
+    try {
+      String roomCode = "";
+      if (shouldGenerateRoomCode) {
+        roomCode = generateRoomCode(6);
+      }
+      final DocumentSnapshot documentSnapshot =
+          await _battleRoomRepository.createBattleRoomWithBot(
+        categoryId: categoryId,
+        name: name!,
+        profileUrl: profileUrl!,
+        uid: uid!,
+        roomCode: roomCode,
+        botName: botName,
+        roomType: "public",
+        entryFee: entryFee,
+        questionLanguageId: questionLanguageId!,
+        context: context,
+      );
+
+      print("DocumentId${documentSnapshot.toString()}");
+
+      print("DocumentId$shouldGenerateRoomCode");
+      emit(
+          BattleRoomCreated(BattleRoom.fromDocumentSnapshot(documentSnapshot)));
+      final questions = await _battleRoomRepository.getQuestions(
+        categoryId: categoryId,
+        forMultiUser: false,
+        matchId: shouldGenerateRoomCode ? roomCode : documentSnapshot.id,
+        roomDocumentId: documentSnapshot.id,
+        roomCreater: true,
+        languageId: questionLanguageId,
+        destroyBattleRoom: "0",
+      );
+
+      joinBattleRoomWithBot(documentSnapshot.id, questions, false);
+    } catch (e) {
+      print("BattleFailureError${e.toString()}");
+      emit(BattleRoomFailure(e.toString()));
+    }
+  }
+
 
   //to join battle room
   void joinRoom(
@@ -365,7 +446,7 @@ class BattleRoomCubit extends Cubit<BattleRoomState> {
 
   //submit anser
   void submitAnswer(String? currentUserId, String? submittedAnswer,
-      bool isCorrectAnswer, int points) {
+      bool isAnswerCorrect, int points) {
     if (state is BattleRoomUserFound) {
       BattleRoom battleRoom = (state as BattleRoomUserFound).battleRoom;
       List<Question>? questions = (state as BattleRoomUserFound).questions;
@@ -375,10 +456,10 @@ class BattleRoomCubit extends Cubit<BattleRoomState> {
         if (battleRoom.user1!.answers.length != questions.length) {
           _battleRoomRepository.submitAnswer(
             battleRoomDocumentId: battleRoom.roomId,
-            points: isCorrectAnswer
+            points: isAnswerCorrect
                 ? (battleRoom.user1!.points + points)
                 : battleRoom.user1!.points,
-            correctAnswers: isCorrectAnswer
+            correctAnswers: isAnswerCorrect
                 ? (battleRoom.user1!.correctAnswers + 1)
                 : battleRoom.user1!.correctAnswers,
             forUser1: true,
@@ -393,10 +474,10 @@ class BattleRoomCubit extends Cubit<BattleRoomState> {
             submittedAnswer: List.from(battleRoom.user2!.answers)
               ..add(submittedAnswer),
             battleRoomDocumentId: battleRoom.roomId,
-            points: isCorrectAnswer
+            points: isAnswerCorrect
                 ? (battleRoom.user2!.points + points)
                 : battleRoom.user2!.points,
-            correctAnswers: isCorrectAnswer
+            correctAnswers: isAnswerCorrect
                 ? (battleRoom.user2!.correctAnswers + 1)
                 : battleRoom.user2!.correctAnswers,
             forUser1: false,
