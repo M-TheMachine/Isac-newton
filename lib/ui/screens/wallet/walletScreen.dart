@@ -189,6 +189,7 @@ class _WalletScreenState extends State<WalletScreen>
 
   //Build request tab
   Widget _buildRequestContainer() {
+    var configCubit = context.read<SystemConfigCubit>();
     return SingleChildScrollView(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).size.height * 0.02,
@@ -305,23 +306,14 @@ class _WalletScreenState extends State<WalletScreen>
                     controller: redeemableAmountTextEditingController,
                   ),
                 ),
-                //SizedBox(height: MediaQuery.of(context).size.height * 0.01),
-                // Row(
-                //   children: [
-                //     redeemCoinOptions("100"),
-                //     const SizedBox(width: 8),
-                //     redeemCoinOptions("200"),
-                //     const SizedBox(width: 8),
-                //     redeemCoinOptions("300"),
-                //   ],
-                // ),
                 SizedBox(height: MediaQuery.of(context).size.height * 0.02),
 
                 /// Payout Notes
                 Column(
                   children: payoutRequestNotes(
-                    context.read<SystemConfigCubit>().coinAmount().toString(),
-                    context.read<SystemConfigCubit>().perCoin().toString(),
+                    (configCubit.minimumCoinLimit() / configCubit.perCoin())
+                        .toString(),
+                    configCubit.minimumCoinLimit().toString(),
                   ).map((e) => _buildPayoutRequestNote(e)).toList(),
                 ),
               ],
@@ -358,11 +350,8 @@ class _WalletScreenState extends State<WalletScreen>
               double maxRedeemableAmount = UiUtils.calculateAmountPerCoins(
                 userCoins:
                     int.parse(context.read<UserDetailsCubit>().getCoins()!),
-                amount: context
-                    .read<SystemConfigCubit>()
-                    .coinAmount(), //per x coin y amount
-                coins:
-                    context.read<SystemConfigCubit>().perCoin(), //per x coins
+                amount: configCubit.coinAmount(), //per x coin y amount
+                coins: configCubit.perCoin(), //per x coins
               );
               if (double.parse(enteredRedeemAmount) > maxRedeemableAmount) {
                 UiUtils.setSnackbar(
@@ -377,11 +366,8 @@ class _WalletScreenState extends State<WalletScreen>
               showRedeemRequestAmountBottomSheet(
                 deductedCoins:
                     UiUtils.calculateDeductedCoinsForRedeemableAmount(
-                  amount: context
-                      .read<SystemConfigCubit>()
-                      .coinAmount(), //per x coin y amount
-                  coins:
-                      context.read<SystemConfigCubit>().perCoin(), //per x coins
+                  amount: configCubit.coinAmount(), //per x coin y amount
+                  coins: configCubit.perCoin(), //per x coins
                   userEnteredAmount: double.parse(enteredRedeemAmount),
                 ),
                 redeemableAmount: double.parse(enteredRedeemAmount),
