@@ -13,10 +13,7 @@ class UserUtils {
     bool isSimpleNetworkImage = false,
     BoxFit fit = BoxFit.cover,
   }) {
-    bool isSvg = false;
-    try {
-      isSvg = profileUrl.split(".").last.toString().toLowerCase() == "svg";
-    } catch (_) {}
+    final isSvg = profileUrl.endsWith(".svg");
     if (isSimpleNetworkImage) {
       if (isSvg) {
         return SvgPicture.network(

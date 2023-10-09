@@ -705,7 +705,6 @@ class _HomeScreenState extends State<HomeScreen>
                               height: double.maxFinite,
                             ),
                       ),
-                    ),
                     SizedBox(width: MediaQuery.of(context).size.width * .03),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
