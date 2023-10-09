@@ -41,4 +41,17 @@ class SubCategoryCubit extends Cubit<SubCategoryState> {
   void updateState(SubCategoryState updatedState) {
     emit(updatedState);
   }
+   void unlockPremiumSubCategory({required categoryId, required String id}) {
+    if (state is SubCategoryFetchSuccess) {
+      final subcategories = (state as SubCategoryFetchSuccess).subcategoryList;
+
+      final idx = subcategories.indexWhere((s) => s.id == id);
+
+      if (idx != -1) {
+        emit(SubCategoryFetchInProgress());
+        subcategories[idx] = subcategories[idx].copyWith(hasUnlocked: true);
+        emit(SubCategoryFetchSuccess(categoryId, subcategories));
+      }
+    }
+  }
 }
