@@ -23,7 +23,6 @@ class AnswerEncryption {
     } catch (e) {
       print("DataOFDecrypted$e");
       return "";
-
     }
   }
 }

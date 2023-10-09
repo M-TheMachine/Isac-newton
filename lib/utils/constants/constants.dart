@@ -147,6 +147,7 @@ const getLatexQuestionUrl = "${baseUrl}get_maths_questions";
 
 //This will be in use to mark x category or y sub category played , and fun n learn para
 const setQuizCategoryPlayedUrl = "${baseUrl}set_quiz_categories";
+const unlockPremiumCategoryUrl = "${baseUrl}unlock_premium_category";
 
 // Phone Number
 const maxPhoneNumberLength = 16;
