@@ -31,7 +31,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../features/inAppPurchase/in_app_product.dart';
 import '../../../utils/constants/api_body_parameter_labels.dart';
@@ -75,7 +75,7 @@ class _CreateOrJoinRoomScreenState extends State<CreateOrJoinRoomScreen> {
   @override
   void initState() {
     super.initState();
-    Wakelock.enable();
+    WakelockPlus.enable();
 
     isInAppPurchaseEnabled =
         context.read<SystemConfigCubit>().isInAppPurchaseEnable();
@@ -113,7 +113,7 @@ class _CreateOrJoinRoomScreenState extends State<CreateOrJoinRoomScreen> {
 
   @override
   void dispose() {
-    Wakelock.enable();
+    WakelockPlus.disable();
     super.dispose();
   }
 
@@ -368,6 +368,7 @@ class _CreateOrJoinRoomScreenState extends State<CreateOrJoinRoomScreen> {
                             child: state is QuizCategorySuccess
                                 ? _buildDropDown(
                                     values: state.categories
+                                        .where((c) => !c.isPremium)
                                         .map((e) => {
                                               "name": e.categoryName,
                                               "id": e.id,
@@ -736,8 +737,10 @@ class _CreateOrJoinRoomScreenState extends State<CreateOrJoinRoomScreen> {
                             .read<UserDetailsCubit>()
                             .getUserProfile()
                             .userId) {
-                      Navigator.of(context)
-                          .pushReplacementNamed(Routes.battleRoomQuiz);
+                      Navigator.of(context).pushReplacementNamed(
+                        Routes.battleRoomQuiz,
+                        arguments: {"play_with_bot": false},
+                      );
                     }
                   }
 
@@ -975,7 +978,9 @@ class _CreateOrJoinRoomScreenState extends State<CreateOrJoinRoomScreen> {
                                         //navigate to quiz screen
                                         Navigator.of(context)
                                             .pushReplacementNamed(
-                                                Routes.battleRoomQuiz);
+                                                Routes.battleRoomQuiz,
+                                          arguments: {"play_with_bot": false},
+                                        );
                                       }
                                     },
                                     child: Text(
@@ -1024,7 +1029,9 @@ class _CreateOrJoinRoomScreenState extends State<CreateOrJoinRoomScreen> {
                                         //navigate to quiz screen
                                         Navigator.of(context)
                                             .pushReplacementNamed(
-                                                Routes.battleRoomQuiz);
+                                                Routes.battleRoomQuiz,
+                                          arguments: {"play_with_bot": false},
+                                        );
                                       }
                                     },
                                     style: TextButton.styleFrom(
@@ -1294,7 +1301,11 @@ class _CreateOrJoinRoomScreenState extends State<CreateOrJoinRoomScreen> {
                                         widget.quizType == QuizTypes.battle
                                             ? Navigator.of(context)
                                                 .pushReplacementNamed(
-                                                    Routes.battleRoomQuiz)
+                                                    Routes.battleRoomQuiz,
+                                                arguments: {
+                                                  "play_with_bot": false
+                                                },
+                                              )
                                             : Navigator.of(context)
                                                 .pushReplacementNamed(Routes
                                                     .multiUserBattleRoomQuiz);
