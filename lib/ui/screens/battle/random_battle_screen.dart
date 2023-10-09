@@ -45,6 +45,7 @@ class _RandomBattleScreenState extends State<RandomBattleScreen> {
 
   @override
   void initState() {
+    super.initState();
     Future.delayed(Duration.zero, () {
       context.read<RewardedAdCubit>().createRewardedAd(context,
           onFbRewardAdCompleted: _addCoinsAfterRewardAd);
@@ -57,7 +58,6 @@ class _RandomBattleScreenState extends State<RandomBattleScreen> {
             );
       }
     });
-    super.initState();
   }
 
   void _addCoinsAfterRewardAd() {
@@ -212,6 +212,7 @@ class _RandomBattleScreenState extends State<RandomBattleScreen> {
                 child: state is QuizCategorySuccess
                     ? _buildDropDown(
                         values: state.categories
+                            .where((c) => !c.isPremium)
                             .map((e) => {"name": e.categoryName, "id": e.id})
                             .toList(),
                         keyValue: "selectCategorySuccess",
