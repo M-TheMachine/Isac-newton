@@ -18,6 +18,8 @@ import 'package:flutterquiz/ui/widgets/bannerAdContainer.dart';
 import 'package:flutterquiz/ui/widgets/circularProgressContainer.dart';
 import 'package:flutterquiz/ui/widgets/customAppbar.dart';
 import 'package:flutterquiz/ui/widgets/errorContainer.dart';
+import 'package:flutterquiz/ui/widgets/premium_category_access_badge.dart';
+import 'package:flutterquiz/ui/widgets/unlock_premium_category_dialog.dart';
 import 'package:flutterquiz/utils/constants/error_message_keys.dart';
 import 'package:flutterquiz/utils/constants/fonts.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
@@ -28,10 +30,12 @@ class SubCategoryAndLevelScreen extends StatefulWidget {
     super.key,
     this.category,
     this.categoryName,
+    required this.isPremiumCategory,
   });
 
   final String? category;
   final String? categoryName;
+  final bool isPremiumCategory;
 
   static Route route(RouteSettings routeSettings) {
     final args = routeSettings.arguments as Map;
@@ -40,6 +44,7 @@ class SubCategoryAndLevelScreen extends StatefulWidget {
       builder: (_) => SubCategoryAndLevelScreen(
         category: args['category_id'] as String?,
         categoryName: args['category_name'] as String?,
+        isPremiumCategory: args['isPremiumCategory'] ?? false,
       ),
     );
   }
@@ -123,6 +128,7 @@ class _SubCategoryAndLevelScreen extends State<SubCategoryAndLevelScreen> {
                               child: AnimatedSubcategoryContainer(
                                 subcategory: subCategoryList[i],
                                 category: widget.category,
+                                isPremiumCategory: widget.isPremiumCategory,
                               ),
                             );
                           },
@@ -149,11 +155,13 @@ class _SubCategoryAndLevelScreen extends State<SubCategoryAndLevelScreen> {
 class AnimatedSubcategoryContainer extends StatefulWidget {
   final String? category;
   final Subcategory subcategory;
+  final bool isPremiumCategory;
 
   const AnimatedSubcategoryContainer({
     super.key,
     required this.subcategory,
     required this.category,
+    required this.isPremiumCategory,
   });
 
   @override
@@ -189,6 +197,12 @@ class _AnimatedSubcategoryContainerState
     super.initState();
   }
 
+  @override
+  void dispose() {
+    expandController.dispose();
+    super.dispose();
+  }
+
   void fetchUnlockedLevel() {
     context.read<UnlockedLevelCubit>().fetchUnlockLevel(
           context.read<UserDetailsCubit>().userId(),
@@ -222,163 +236,6 @@ class _AnimatedSubcategoryContainerState
       CurvedAnimation(
         parent: expandController,
         curve: const Interval(0, 0.5, curve: Curves.easeInOut),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    expandController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: colorScheme.background,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        children: [
-          /// subcategory
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _isExpanded = !_isExpanded;
-
-                if (_isExpanded) {
-                  expandController.forward();
-                } else {
-                  expandController.reverse();
-                }
-              });
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: colorScheme.background,
-                border: Border.all(color: Colors.transparent),
-              ),
-              child: Row(
-                children: [
-                  /// subcategory Icon
-                  Container(
-                    height: 45,
-                    width: 45,
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(5),
-                    child: CachedNetworkImage(
-                      imageUrl: widget.subcategory.image!,
-                      errorWidget: (_, s, d) => Icon(
-                        Icons.subject,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  /// subcategory details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        /// subcategory name
-                        Text(
-                          widget.subcategory.subcategoryName!,
-                          style: TextStyle(
-                            color: colorScheme.onTertiary,
-                            fontSize: 18,
-                            fontWeight: FontWeights.semiBold,
-                            height: 1.2,
-                          ),
-                        ),
-
-                        /// subcategory levels, questions details
-                        RichText(
-                          text: TextSpan(
-                            style: GoogleFonts.nunito(
-                              textStyle: TextStyle(
-                                color: colorScheme.onTertiary.withOpacity(0.3),
-                                fontWeight: FontWeights.regular,
-                                fontSize: 14,
-                              ),
-                            ),
-                            children: [
-                              TextSpan(
-                                text: widget.subcategory.maxLevel.toString(),
-                                style: TextStyle(
-                                  color: colorScheme.onTertiary,
-                                ),
-                              ),
-                              const TextSpan(text: ' :'),
-                              TextSpan(
-                                  text:
-                                      ' ${AppLocalization.of(context)!.getTranslatedValues("levels")!}'),
-                              const WidgetSpan(child: SizedBox(width: 5)),
-                              WidgetSpan(
-                                child: Container(
-                                  color:
-                                      Theme.of(context).scaffoldBackgroundColor,
-                                  height: 15,
-                                  width: 1,
-                                ),
-                              ),
-                              const WidgetSpan(child: SizedBox(width: 5)),
-                              TextSpan(
-                                text: widget.subcategory.noOfQue,
-                                style: TextStyle(
-                                  color: colorScheme.onTertiary,
-                                ),
-                              ),
-                              const TextSpan(text: ' :'),
-                              TextSpan(
-                                  text:
-                                      ' ${AppLocalization.of(context)!.getTranslatedValues("questions")!}'),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-
-                  /// subcategory show levels arrow
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                      ),
-                    ),
-                    child: AnimatedBuilder(
-                      animation: _rotationAnimation,
-                      child: Icon(
-                        Icons.keyboard_arrow_right_rounded,
-                        size: 25,
-                        color: colorScheme.onTertiary,
-                      ),
-                      builder: (_, child) => Transform.rotate(
-                        angle: _rotationAnimation.value,
-                        child: child,
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          ),
-
-          /// subcategory expanded levels
-          _buildLevelSection(),
-        ],
       ),
     );
   }
@@ -427,6 +284,8 @@ class _AnimatedSubcategoryContainerState
                     children: List.generate(
                       _showAllLevels ? maxLevels : 6,
                       (i) {
+                        print(
+                            "PREmium : ${widget.subcategory.isPremium || widget.isPremiumCategory}");
                         return GestureDetector(
                           onTap: () {
                             if ((i + 1) <= unlockedLevel) {
@@ -444,9 +303,12 @@ class _AnimatedSubcategoryContainerState
                                   "unlockedLevel": state.unlockedLevel,
                                   "contestId": "",
                                   "comprehensionId": "",
-                                  "quizName": "Quiz Zone"
+                                  "quizName": "Quiz Zone",
+                                  "isPremiumCategory":
+                                      widget.subcategory.isPremium ||
+                                          widget.isPremiumCategory,
                                 },
-                              ).then((value) => fetchUnlockedLevel());
+                              ).then((_) => fetchUnlockedLevel());
                             } else {
                               UiUtils.setSnackbar(
                                 AppLocalization.of(context)!
@@ -506,6 +368,181 @@ class _AnimatedSubcategoryContainerState
       child: Divider(
         color: Theme.of(context).scaffoldBackgroundColor,
         height: 2,
+      ),
+    );
+  }
+
+  void _onTapSubcategory(Subcategory subcategory) {
+    /// Unlock Premium Subcategory
+    if (subcategory.isPremium && !subcategory.hasUnlocked) {
+      showUnlockPremiumCategoryDialog(
+        context,
+        categoryId: subcategory.mainCatId!,
+        subcategoryId: subcategory.id,
+        categoryName: subcategory.subcategoryName!,
+        requiredCoins: subcategory.requiredCoins,
+      );
+    } else {
+      setState(() {
+        _isExpanded = !_isExpanded;
+
+        if (_isExpanded) {
+          expandController.forward();
+        } else {
+          expandController.reverse();
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final subcategory = widget.subcategory;
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colorScheme.background,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          /// subcategory
+          GestureDetector(
+            onTap: () => _onTapSubcategory(subcategory),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.background,
+                border: Border.all(color: Colors.transparent),
+              ),
+              child: Row(
+                children: [
+                  /// subcategory Icon
+                  Container(
+                    height: 45,
+                    width: 45,
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(5),
+                    child: CachedNetworkImage(
+                      imageUrl: subcategory.image!,
+                      errorWidget: (_, s, d) => Icon(
+                        Icons.subject,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  /// subcategory details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        /// subcategory name
+                        Text(
+                          subcategory.subcategoryName!,
+                          style: TextStyle(
+                            color: colorScheme.onTertiary,
+                            fontSize: 18,
+                            fontWeight: FontWeights.semiBold,
+                            height: 1.2,
+                          ),
+                        ),
+
+                        /// subcategory levels, questions details
+                        RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.nunito(
+                              textStyle: TextStyle(
+                                color: colorScheme.onTertiary.withOpacity(0.3),
+                                fontWeight: FontWeights.regular,
+                                fontSize: 14,
+                              ),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: subcategory.maxLevel.toString(),
+                                style: TextStyle(
+                                  color: colorScheme.onTertiary,
+                                ),
+                              ),
+                              const TextSpan(text: ' :'),
+                              TextSpan(
+                                  text:
+                                      ' ${AppLocalization.of(context)!.getTranslatedValues("levels")!}'),
+                              const WidgetSpan(child: SizedBox(width: 5)),
+                              WidgetSpan(
+                                child: Container(
+                                  color:
+                                      Theme.of(context).scaffoldBackgroundColor,
+                                  height: 15,
+                                  width: 1,
+                                ),
+                              ),
+                              const WidgetSpan(child: SizedBox(width: 5)),
+                              TextSpan(
+                                text: subcategory.noOfQue,
+                                style: TextStyle(
+                                  color: colorScheme.onTertiary,
+                                ),
+                              ),
+                              const TextSpan(text: ' :'),
+                              TextSpan(
+                                  text:
+                                      ' ${AppLocalization.of(context)!.getTranslatedValues("questions")!}'),
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+
+                  /// subcategory show levels arrow
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PremiumCategoryAccessBadge(
+                        hasUnlocked: subcategory.hasUnlocked,
+                        isPremium: subcategory.isPremium,
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: Theme.of(context).scaffoldBackgroundColor,
+                          ),
+                        ),
+                        child: AnimatedBuilder(
+                          animation: _rotationAnimation,
+                          child: Icon(
+                            Icons.keyboard_arrow_right_rounded,
+                            size: 25,
+                            color: colorScheme.onTertiary,
+                          ),
+                          builder: (_, child) => Transform.rotate(
+                            angle: _rotationAnimation.value,
+                            child: child,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ),
+
+          /// subcategory expanded levels
+          _buildLevelSection(),
+        ],
       ),
     );
   }
