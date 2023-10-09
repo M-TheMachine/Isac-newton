@@ -26,7 +26,6 @@ import 'package:flutterquiz/features/profileManagement/profileManagementLocalDat
 import 'package:flutterquiz/features/profileManagement/profileManagementRepository.dart';
 import 'package:flutterquiz/features/quiz/cubits/contestCubit.dart';
 import 'package:flutterquiz/features/quiz/cubits/quizCategoryCubit.dart';
-import 'package:flutterquiz/features/quiz/cubits/quizoneCategoryCubit.dart';
 import 'package:flutterquiz/features/quiz/cubits/subCategoryCubit.dart';
 import 'package:flutterquiz/features/quiz/models/contest.dart';
 import 'package:flutterquiz/features/quiz/models/quizType.dart';
@@ -39,6 +38,8 @@ import 'package:flutterquiz/ui/screens/home/widgets/update_app_container.dart';
 import 'package:flutterquiz/ui/screens/home/widgets/user_achievements.dart';
 import 'package:flutterquiz/ui/widgets/circularProgressContainer.dart';
 import 'package:flutterquiz/ui/widgets/errorContainer.dart';
+import 'package:flutterquiz/ui/widgets/premium_category_access_badge.dart';
+import 'package:flutterquiz/ui/widgets/unlock_premium_category_dialog.dart';
 import 'package:flutterquiz/utils/constants/constants.dart';
 import 'package:flutterquiz/utils/constants/error_message_keys.dart';
 import 'package:flutterquiz/utils/constants/fonts.dart';
@@ -87,9 +88,9 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _controller;
 
   /// Quiz Zone globals
-  int oldCateListLength = 0;
+  int oldCategoriesToShowCount = 0;
   bool isCateListExpanded = false;
-  bool isCateListExpandable = true;
+  bool canExpandCategoryList = false;
 
   final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
@@ -154,7 +155,8 @@ class _HomeScreenState extends State<HomeScreen>
   late final String _userId;
   late final String _currLangId;
   late final SystemConfigCubit _sysConfigCubit;
-
+  final _quizZoneId =
+      UiUtils.getCategoryTypeNumberFromQuizType(QuizTypes.quizZone);
   @override
   void initState() {
     super.initState();
@@ -179,26 +181,18 @@ class _HomeScreenState extends State<HomeScreen>
 
     ///
     _currLangId = UiUtils.getCurrentQuestionLanguageId(context);
-    final String quizZoneType =
-        UiUtils.getCategoryTypeNumberFromQuizType(QuizTypes.quizZone);
     _sysConfigCubit = context.read<SystemConfigCubit>();
     final quizCubit = context.read<QuizCategoryCubit>();
-    final quizZoneCubit = context.read<QuizoneCategoryCubit>();
 
     if (widget.isGuest) {
-      quizCubit.getQuizCategory(languageId: _currLangId, type: quizZoneType);
-      quizZoneCubit.getQuizCategory(languageId: _currLangId);
+      quizCubit.getQuizCategory(languageId: _currLangId, type: _quizZoneId);
     } else {
       fetchUserDetails();
 
       _userId = context.read<UserDetailsCubit>().userId();
       quizCubit.getQuizCategoryWithUserId(
         languageId: _currLangId,
-        type: quizZoneType,
-        userId: _userId,
-      );
-      quizZoneCubit.getQuizCategoryWithUserId(
-        languageId: _currLangId,
+        type: _quizZoneId,
         userId: _userId,
       );
       context.read<ContestCubit>().getContest(_userId);
@@ -236,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen>
         DarwinInitializationSettings(
       onDidReceiveLocalNotification:
           (int id, String? title, String? body, String? payLoad) {
-        print("For ios version <= 9 notification will be shown here");
+        log("For ios version <= 9 notification will be shown here");
       },
     );
 
@@ -366,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen>
     FirebaseMessaging.onBackgroundMessage(UiUtils.onBackgroundMessage);
     //handle foreground notification
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print("Notification arrives : ${message.toMap().toString()}");
+      log("Notification arrives : ${message.toMap().toString()}");
       Map<String, dynamic> data = message.data;
       log(data.toString(), name: "notification data msg");
       final title = data['title'].toString();
@@ -402,16 +396,12 @@ class _HomeScreenState extends State<HomeScreen>
 
   //quiz_type according to the notification category
   QuizTypes _getQuizTypeFromCategory(String category) {
-    switch (category) {
-      case 'audio-question-category':
-        return QuizTypes.audioQuestions;
-      case 'guess-the-word-category':
-        return QuizTypes.guessTheWord;
-      case 'fun-n-learn-category':
-        return QuizTypes.funAndLearn;
-      default:
-        return QuizTypes.quizZone;
-    }
+    return switch (category) {
+      'audio-question-category' => QuizTypes.audioQuestions,
+      'guess-the-word-category' => QuizTypes.guessTheWord,
+      'fun-n-learn-category' => QuizTypes.funAndLearn,
+      _ => QuizTypes.quizZone,
+    };
   }
 
   // notification type is category then move to category screen
@@ -430,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen>
         Navigator.of(context).pushNamed(Routes.wallet);
       }
     } catch (e) {
-      print(e);
+      log(e.toString(), error: e);
     }
   }
 
@@ -439,8 +429,9 @@ class _HomeScreenState extends State<HomeScreen>
     if (type == "badges") {
       Navigator.of(context).pushNamed(Routes.badges);
     } else if (type.toString().contains('category')) {
-      Navigator.of(context).pushNamed(Routes.category,
-          arguments: {"quizType": _getQuizTypeFromCategory(type)});
+      Navigator.of(context).pushNamed(Routes.category, arguments: {
+        "quizType": _getQuizTypeFromCategory(type),
+      });
     } else if (type == "payment_request") {
       Navigator.of(context).pushNamed(Routes.wallet);
     }
@@ -457,11 +448,12 @@ class _HomeScreenState extends State<HomeScreen>
     var bigPicturePath = await _downloadAndSaveFile(image, 'bigPicture');
     var bigPictureStyleInformation = BigPictureStyleInformation(
         FilePathAndroidBitmap(bigPicturePath),
-        hideExpandedLargeIcon: true,
-        contentTitle: title,
-        htmlFormatContentTitle: true,
-        summaryText: msg,
-        htmlFormatSummaryText: true);
+      hideExpandedLargeIcon: true,
+      contentTitle: title,
+      htmlFormatContentTitle: true,
+      summaryText: msg,
+      htmlFormatSummaryText: true,
+    );
     var androidPlatformChannelSpecifics = AndroidNotificationDetails(
       packageName, //channel id
       appName, //channel name
@@ -469,18 +461,25 @@ class _HomeScreenState extends State<HomeScreen>
       largeIcon: FilePathAndroidBitmap(largeIconPath),
       styleInformation: bigPictureStyleInformation,
     );
-    var platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin
-        .show(0, title, msg, platformChannelSpecifics, payload: payloads);
+   final platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      msg,
+      platformChannelSpecifics,
+      payload: payloads,
+    );
   }
 
   Future<String> _downloadAndSaveFile(String url, String fileName) async {
-    final Directory directory = await getApplicationDocumentsDirectory();
-    final String filePath = '${directory.path}/$fileName';
-    final http.Response response = await http.get(Uri.parse(url));
-    final File file = File(filePath);
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/$fileName';
+    final response = await http.get(Uri.parse(url));
+    final file = File(filePath);
     await file.writeAsBytes(response.bodyBytes);
+
     return filePath;
   }
 
@@ -490,7 +489,7 @@ class _HomeScreenState extends State<HomeScreen>
     String body,
     String payloads,
   ) async {
-    var androidPlatformChannelSpecifics = const AndroidNotificationDetails(
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
       packageName, //channel id
       appName, //channel name
       channelDescription: appName,
@@ -498,13 +497,18 @@ class _HomeScreenState extends State<HomeScreen>
       priority: Priority.high,
       ticker: 'ticker',
     );
-    const DarwinNotificationDetails iosNotificationDetails =
-        DarwinNotificationDetails();
+    const platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: DarwinNotificationDetails(),
+    );
 
-    var platformChannelSpecifics = NotificationDetails(
-        android: androidPlatformChannelSpecifics, iOS: iosNotificationDetails);
-    await flutterLocalNotificationsPlugin
-        .show(0, title, body, platformChannelSpecifics, payload: payloads);
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: payloads,
+    );
   }
 
   @override
@@ -545,34 +549,41 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    if (index == "dailyQuiz") {
-      Navigator.of(context).pushNamed(Routes.quiz, arguments: {
-        "quizType": QuizTypes.dailyQuiz,
-        "numberOfPlayer": 1,
-        "quizName": "Daily Quiz"
-      });
-    } else if (index == "funAndLearn") {
-      Navigator.of(context).pushNamed(Routes.category, arguments: {
-        "quizType": QuizTypes.funAndLearn,
-      });
-    } else if (index == "guessTheWord") {
-      Navigator.of(context).pushNamed(Routes.category, arguments: {
-        "quizType": QuizTypes.guessTheWord,
-      });
-    } else if (index == "audioQuestions") {
-      Navigator.of(context).pushNamed(Routes.category, arguments: {
-        "quizType": QuizTypes.audioQuestions,
-      });
-    } else if (index == "mathMania") {
-      Navigator.of(context).pushNamed(Routes.category, arguments: {
-        "quizType": QuizTypes.mathMania,
-      });
-    } else if (index == "truefalse") {
-      Navigator.of(context).pushNamed(Routes.quiz, arguments: {
-        "quizType": QuizTypes.trueAndFalse,
-        "numberOfPlayer": 1,
-        "quizName": "True/False Quiz"
-      });
+     switch (index) {
+      case "dailyQuiz":
+        Navigator.of(context).pushNamed(Routes.quiz, arguments: {
+          "quizType": QuizTypes.dailyQuiz,
+          "numberOfPlayer": 1,
+          "quizName": "Daily Quiz"
+        });
+        return;
+      case "funAndLearn":
+        Navigator.of(context).pushNamed(Routes.category, arguments: {
+          "quizType": QuizTypes.funAndLearn,
+        });
+        return;
+      case "guessTheWord":
+        Navigator.of(context).pushNamed(Routes.category, arguments: {
+          "quizType": QuizTypes.guessTheWord,
+        });
+        return;
+      case "audioQuestions":
+        Navigator.of(context).pushNamed(Routes.category, arguments: {
+          "quizType": QuizTypes.audioQuestions,
+        });
+        return;
+      case "mathMania":
+        Navigator.of(context).pushNamed(Routes.category, arguments: {
+          "quizType": QuizTypes.mathMania,
+        });
+        return;
+      case "truefalse":
+        Navigator.of(context).pushNamed(Routes.quiz, arguments: {
+          "quizType": QuizTypes.trueAndFalse,
+          "numberOfPlayer": 1,
+          "quizName": "True/False Quiz"
+        });
+        return;
     }
   }
 
@@ -627,7 +638,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Future<dynamic> showLoginDialog() {
+  Future<void> showLoginDialog() {
     return showDialog(
       context: context,
       builder: (_) => GuestModeDialog(
@@ -676,12 +687,23 @@ class _HomeScreenState extends State<HomeScreen>
                               .withOpacity(0.3),
                         ),
                       ),
-                      child: UserUtils.getUserProfileWidget(
-                        pngBackgroundColor:
-                            Theme.of(context).primaryColor.withOpacity(.2),
-                        profileUrl: _userProfileImg,
-                        width: double.maxFinite,
-                        height: double.maxFinite,
+                      child: _userProfileImg.startsWith("assets/")
+                          ? Image.asset(
+                              _userProfileImg,
+                              color: Theme.of(context)
+                                  .primaryColor
+                                  .withOpacity(.2),
+                              width: double.maxFinite,
+                              height: double.maxFinite,
+                            )
+                          : UserUtils.getUserProfileWidget(
+                              pngBackgroundColor: Theme.of(context)
+                                  .primaryColor
+                                  .withOpacity(.2),
+                              profileUrl: _userProfileImg,
+                              width: double.maxFinite,
+                              height: double.maxFinite,
+                            ),
                       ),
                     ),
                     SizedBox(width: MediaQuery.of(context).size.width * .03),
@@ -811,7 +833,7 @@ class _HomeScreenState extends State<HomeScreen>
             Stack(
               clipBehavior: Clip.none,
               children: [
-                if (isCateListExpandable) ...[
+                if (canExpandCategoryList) ...[
                   Positioned(
                     top: 0,
                     left: scrWidth * .1,
@@ -850,12 +872,12 @@ class _HomeScreenState extends State<HomeScreen>
                       bottom: 26,
                     ),
                     width: MediaQuery.of(context).size.width,
-                    child: quiZoneCategories(),
+                    child: quizZoneCategories(),
                   ),
                 ),
 
                 /// Expand Arrow
-                if (isCateListExpandable) ...[
+                if (canExpandCategoryList) ...[
                   Positioned(
                     left: 0,
                     right: 0,
@@ -901,22 +923,18 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget quiZoneCategories() {
-    return BlocConsumer<QuizoneCategoryCubit, QuizoneCategoryState>(
-      bloc: context.read<QuizoneCategoryCubit>(),
+  Widget quizZoneCategories() {
+    return BlocConsumer<QuizCategoryCubit, QuizCategoryState>(
+      bloc: context.read<QuizCategoryCubit>(),
       listener: (context, state) {
-        if (state is QuizoneCategoryFailure) {
+        if (state is QuizCategoryFailure) {
           if (state.errorMessage == unauthorizedAccessCode) {
             UiUtils.showAlreadyLoggedInDialog(context: context);
           }
         }
       },
       builder: (context, state) {
-        if (state is QuizoneCategoryProgress ||
-            state is QuizoneCategoryInitial) {
-          return const Center(child: CircularProgressContainer());
-        }
-        if (state is QuizoneCategoryFailure) {
+        if (state is QuizCategoryFailure) {
           return ErrorContainer(
             showRTryButton: false,
             showBackButton: false,
@@ -925,147 +943,179 @@ class _HomeScreenState extends State<HomeScreen>
               convertErrorCodeToLanguageKey(state.errorMessage),
             ),
             onTapRetry: () {
-              context.read<QuizoneCategoryCubit>().getQuizCategoryWithUserId(
+              context.read<QuizCategoryCubit>().getQuizCategoryWithUserId(
                     languageId: UiUtils.getCurrentQuestionLanguageId(context),
                     userId: _userId,
+                    type: UiUtils.getCategoryTypeNumberFromQuizType(
+                        QuizTypes.quizZone),
                   );
             },
           );
         }
 
-        final categoryList = (state as QuizoneCategorySuccess).categories;
-        final int index;
+        if (state is QuizCategorySuccess) {
+          final categories = state.categories;
+          final int categoriesToShowCount;
 
-        /// Min/Max Categories to Show.
-        const minIdx = 2;
-        const maxIdx = 5;
+          /// Min/Max Categories to Show.
+          const minCount = 2;
+          const maxCount = 5;
 
-        /// need to check old cate list with new cate list, when we change languages.
-        /// and rebuild the list.
-        if (oldCateListLength != categoryList.length) {
-          Future.delayed(Duration.zero, () {
-            oldCateListLength = categoryList.length;
-            isCateListExpandable = oldCateListLength > minIdx;
-            setState(() {});
-          });
-        }
+          /// need to check old cate list with new cate list, when we change languages.
+          /// and rebuild the list.
+          if (oldCategoriesToShowCount != categories.length) {
+            Future.delayed(Duration.zero, () {
+              oldCategoriesToShowCount = categories.length;
+              canExpandCategoryList = oldCategoriesToShowCount > minCount;
+              setState(() {});
+            });
+          }
 
         if (!isCateListExpanded) {
-          index = categoryList.length <= minIdx ? categoryList.length : minIdx;
-        } else {
-          index = categoryList.length <= maxIdx ? categoryList.length : maxIdx;
-        }
+            categoriesToShowCount =
+                categories.length <= minCount ? categories.length : minCount;
+          } else {
+            categoriesToShowCount =
+                categories.length <= maxCount ? categories.length : maxCount;
+          }
 
         return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 10),
-          shrinkWrap: true,
-          itemCount: index,
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (BuildContext context, int index) {
-            return ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              onTap: () {
-                if (widget.isGuest) {
-                  showLoginDialog();
-                  return;
-                }
+            padding: const EdgeInsets.only(bottom: 10),
+            shrinkWrap: true,
+            itemCount: categoriesToShowCount,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, i) {
+              final category = categories[i];
+
+        return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                onTap: () {
+                  if (widget.isGuest) {
+                    showLoginDialog();
+                    return;
+                  }
+
+        if (category.isPremium && !category.hasUnlocked) {
+                    showUnlockPremiumCategoryDialog(
+                      context,
+                      categoryId: category.id!,
+                      categoryName: category.categoryName!,
+                      requiredCoins: category.requiredCoins,
+                    );
+                    return;
+                  }
 
                 //noOf means how many subcategory it has
-                //if subcategory is 0 then check for level
-                if (categoryList[index].noOf == "0") {
-                  //means this category does not have level
-                  if (categoryList[index].maxLevel == "0") {
-                    //direct move to quiz screen pass level as 0
-                    Navigator.of(context).pushNamed(Routes.quiz, arguments: {
-                      "numberOfPlayer": 1,
-                      "quizType": QuizTypes.quizZone,
-                      "categoryId": categoryList[index].id,
-                      "subcategoryId": "",
-                      "level": "0",
-                      "subcategoryMaxLevel": "0",
-                      "unlockedLevel": 0,
-                      "contestId": "",
-                      "comprehensionId": "",
-                      "quizName": "Quiz Zone",
-                      'showRetryButton': categoryList[index].noOfQues! != '0'
-                    });
+                  //if subcategory is 0 then check for level
+                  if (category.noOf == "0") {
+                    //means this category does not have level
+                    if (category.maxLevel == "0") {
+                      //direct move to quiz screen pass level as 0
+                      Navigator.of(context).pushNamed(Routes.quiz, arguments: {
+                        "numberOfPlayer": 1,
+                        "quizType": QuizTypes.quizZone,
+                        "categoryId": category.id,
+                        "subcategoryId": "",
+                        "level": "0",
+                        "subcategoryMaxLevel": "0",
+                        "unlockedLevel": 0,
+                        "contestId": "",
+                        "comprehensionId": "",
+                        "quizName": "Quiz Zone",
+                        'showRetryButton': category.noOfQues! != '0'
+                      });
+                    } else {
+                      Navigator.of(context)
+                          .pushNamed(Routes.levels, arguments: {
+                        "Category": category,
+                      });
+                    }
                   } else {
-                    Navigator.of(context).pushNamed(Routes.levels, arguments: {
-                      "Category": categoryList[index],
-                    });
+                    Navigator.of(context).pushNamed(
+                      Routes.subcategoryAndLevel,
+                      arguments: {
+                        "category_id": category.id,
+                        "category_name": category.categoryName
+                      },
+                    );
                   }
-                } else {
-                  Navigator.of(context).pushNamed(
-                    Routes.subcategoryAndLevel,
-                    arguments: {
-                      "category_id": categoryList[index].id,
-                      "category_name": categoryList[index].categoryName
-                    },
-                  );
-                }
-              },
-              horizontalTitleGap: 15,
-              leading: AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: Theme.of(context).scaffoldBackgroundColor,
+                },
+                horizontalTitleGap: 15,
+                leading: AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                      ),
                     ),
-                  ),
                   padding: const EdgeInsets.all(5),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: CachedNetworkImage(
-                      memCacheWidth: 90,
-                      memCacheHeight: 90,
-                      fit: BoxFit.fill,
-                      width: MediaQuery.of(context).size.width * 0.125,
-                      height: MediaQuery.of(context).size.width * 0.125,
-                      placeholder: (_, __) => const SizedBox(),
-                      imageUrl: categoryList[index].image!,
-                      errorWidget: (_, i, e) => Image(
-                        image: AssetImage(
-                          UiUtils.getImagePath("ic_launcher.png"),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: CachedNetworkImage(
+                        memCacheWidth: 90,
+                        memCacheHeight: 90,
+                        fit: BoxFit.fill,
+                        width: MediaQuery.of(context).size.width * 0.125,
+                        height: MediaQuery.of(context).size.width * 0.125,
+                        placeholder: (_, __) => const SizedBox(),
+                        imageUrl: category.image!,
+                        errorWidget: (_, i, e) => Image(
+                          image: AssetImage(
+                            UiUtils.getImagePath("ic_launcher.png"),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-
               /// right_arrow
-              trailing: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: Theme.of(context).scaffoldBackgroundColor,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PremiumCategoryAccessBadge(
+                      hasUnlocked: category.hasUnlocked,
+                      isPremium: category.isPremium,
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+                title: Text(
+                  category.categoryName!,
+                  style: _boldTextStyle.copyWith(fontSize: 16),
+                ),
+              subtitle: Text(
+                  "Question: ${category.noOfQues!}",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onTertiary
+                        .withOpacity(0.6),
                   ),
                 ),
-                padding: const EdgeInsets.all(2),
-                child: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onTertiary,
-                ),
-              ),
-              title: Text(
-                categoryList[index].categoryName!,
-                style: _boldTextStyle.copyWith(fontSize: 16),
-              ),
-              subtitle: Text(
-                "Question: ${categoryList[index].noOfQues!}",
-                style: TextStyle(
-                  fontSize: 14,
-                  color:
-                      Theme.of(context).colorScheme.onTertiary.withOpacity(0.6),
-                ),
-              ),
+              
             );
           },
         );
+        }
+        return const Center(child: CircularProgressContainer());
       },
     );
   }
@@ -1227,7 +1277,7 @@ class _HomeScreenState extends State<HomeScreen>
             }
 
             if (state is ContestFailure) {
-              print(state.errorMessage);
+              log(state.errorMessage);
 
               return Container(
                 width: scrWidth,
@@ -1617,23 +1667,17 @@ class _HomeScreenState extends State<HomeScreen>
           color: Theme.of(context).primaryColor,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           onRefresh: () async {
-            final String quizZoneType =
-                UiUtils.getCategoryTypeNumberFromQuizType(QuizTypes.quizZone);
             final quizCubit = context.read<QuizCategoryCubit>();
-            final quizZoneCubit = context.read<QuizoneCategoryCubit>();
 
             if (widget.isGuest) {
               quizCubit.getQuizCategory(
-                  languageId: _currLangId, type: quizZoneType);
-              quizZoneCubit.getQuizCategory(languageId: _currLangId);
-            } else {
-              quizCubit.getQuizCategoryWithUserId(
                 languageId: _currLangId,
-                type: quizZoneType,
-                userId: _userId,
+                type: _quizZoneId,
               );
-              quizZoneCubit.getQuizCategoryWithUserId(
-                languageId: _currLangId,
+              } else {
+              quizCubit.getQuizCategoryWithUserId(
+                languageId: UiUtils.getCurrentQuestionLanguageId(context),
+                type: _quizZoneId,
                 userId: _userId,
               );
               context.read<ContestCubit>().getContest(_userId);
@@ -1656,11 +1700,6 @@ class _HomeScreenState extends State<HomeScreen>
                 buildContestLive(),
                 _buildContest(),
               ],
-
-
-
-
-
 
               // Here goes the Battles menu
 
@@ -1715,18 +1754,6 @@ class _HomeScreenState extends State<HomeScreen>
   bool profileComplete = false;
 
   @override
-  void didUpdateWidget(covariant HomeScreen oldWidget) {
-    print("didUpdateWidget");
-    super.didUpdateWidget(oldWidget);
-  }
-
-  @override
-  void didChangeDependencies() {
-    print("didChangeDependencies");
-    super.didChangeDependencies();
-  }
-
-  @override
   Widget build(BuildContext context) {
     /// need to add this here, cause textStyle doesn't update automatically when changing theme.
     _boldTextStyle = TextStyle(
@@ -1743,7 +1770,7 @@ class _HomeScreenState extends State<HomeScreen>
           : BlocConsumer<UserDetailsCubit, UserDetailsState>(
               bloc: context.read<UserDetailsCubit>(),
               listener: (context, state) {
-                print("current page state ${state.toString()}");
+                log("current page state ${state.toString()}");
                 if (state is UserDetailsFetchSuccess) {
                   UiUtils.fetchBookmarkAndBadges(
                     context: context,
