@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -32,12 +33,15 @@ import 'package:flutterquiz/utils/constants/string_labels.dart';
 import 'package:flutterquiz/utils/internet_connectivity.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class BattleRoomQuizScreen extends StatefulWidget {
-  const BattleRoomQuizScreen({super.key});
+  const BattleRoomQuizScreen({super.key, required this.playWithBot});
+
+  final bool playWithBot;
 
   static Route<dynamic> route(RouteSettings routeSettings) {
+    final args = routeSettings.arguments as Map;
     return CupertinoPageRoute(
       builder: (_) => MultiBlocProvider(
         providers: [
@@ -52,7 +56,9 @@ class BattleRoomQuizScreen extends StatefulWidget {
                 UpdateScoreAndCoinsCubit(ProfileManagementRepository()),
           ),
         ],
-        child: const BattleRoomQuizScreen(),
+        child: BattleRoomQuizScreen(
+          playWithBot: args['play_with_bot'] ?? false,
+        ),
       ),
     );
   }
@@ -160,24 +166,32 @@ class _BattleRoomQuizScreenState extends State<BattleRoomQuizScreen>
 
   late final _currUserId = context.read<UserDetailsCubit>().userId();
 
+  final List<String> botSubmittedAnswers = [];
+
   @override
   void initState() {
     super.initState();
-    Wakelock.enable();
+    WakelockPlus.enable();
     //Add empty latest messages
     latestMessagesByUsers.add(Message.buildEmptyMessage());
     latestMessagesByUsers.add(Message.buildEmptyMessage());
     //
     print("Current User ID: $_currUserId");
+    print("Play With Bot ? : ${widget.playWithBot}");
 
     Future.delayed(Duration.zero, () {
-      context.read<UpdateScoreAndCoinsCubit>().updateCoins(
-          _currUserId,
-          context.read<BattleRoomCubit>().getEntryFee(),
-          false,
-          playedBattleKey);
-      context.read<UserDetailsCubit>().updateCoins(
-          addCoin: false, coins: context.read<BattleRoomCubit>().getEntryFee());
+      if (!widget.playWithBot) {
+        context.read<UpdateScoreAndCoinsCubit>().updateCoins(
+              _currUserId,
+              context.read<BattleRoomCubit>().getEntryFee(),
+              false,
+              playedBattleKey,
+            );
+        context.read<UserDetailsCubit>().updateCoins(
+              addCoin: false,
+              coins: context.read<BattleRoomCubit>().getEntryFee(),
+            );
+      }
     });
 
     initializeAnimation();
@@ -188,7 +202,7 @@ class _BattleRoomQuizScreenState extends State<BattleRoomQuizScreen>
 
   @override
   void dispose() {
-    Wakelock.disable();
+    WakelockPlus.disable();
     timerAnimationController
         .removeStatusListener(currentUserTimerAnimationStatusListener);
     timerAnimationController.dispose();
@@ -297,27 +311,59 @@ class _BattleRoomQuizScreenState extends State<BattleRoomQuizScreen>
 
       //need to give the delay so user can see the correct answer or incorrect
       await Future.delayed(
-          const Duration(seconds: inBetweenQuestionTimeInSeconds));
-      //update answer and current points in database
-      print("SubmitAnswer$submittedAnswer");
-      print("CorrectSubmitAnswer${AnswerEncryption.decryptCorrectAnswer(
+        const Duration(seconds: inBetweenQuestionTimeInSeconds),
+      );
+
+      /// update answer and current points in database
+      final correctAnswer = AnswerEncryption.decryptCorrectAnswer(
         rawKey: context.read<AuthCubit>().getUserFirebaseId(),
         correctAnswer: questions[currentQuestionIndex].correctAnswer!,
-      )}");
+      );
+      print("[$_currUserId] Submitted Answer : $submittedAnswer");
+      print("Correct Answer : $correctAnswer");
+
       battleRoomCubit.submitAnswer(
         _currUserId,
         submittedAnswer,
-        submittedAnswer ==
-            AnswerEncryption.decryptCorrectAnswer(
-              rawKey: context.read<AuthCubit>().getUserFirebaseId(),
-              correctAnswer: questions[currentQuestionIndex].correctAnswer!,
-            ),
+        submittedAnswer == correctAnswer,
         UiUtils.determineBattleCorrectAnswerPoints(
           timerAnimationController.value,
           context.read<SystemConfigCubit>().getRandomBattleSeconds(),
         ),
       );
+      if (widget.playWithBot) {
+        submitRobotAnswer();
+      }
     }
+  }
+
+  void submitRobotAnswer() {
+    opponentUserTimerAnimationController.stop();
+
+    //submitted answer will be id of the answerOption
+    final battleRoomCubit = context.read<BattleRoomCubit>();
+    final questions = battleRoomCubit.getQuestions();
+
+    final correctAnswer = AnswerEncryption.decryptCorrectAnswer(
+      rawKey: context.read<AuthCubit>().getUserFirebaseId(),
+      correctAnswer: questions[currentQuestionIndex].correctAnswer!,
+    );
+
+    final options = questions[currentQuestionIndex].answerOptions!.toList();
+    final randomIdx = Random.secure().nextInt(options.length);
+    final submittedAnswer = options[randomIdx].id!;
+
+    botSubmittedAnswers.add(submittedAnswer);
+
+    battleRoomCubit.submitAnswer(
+      context.read<BattleRoomCubit>().getOpponentUserDetails(_currUserId).uid,
+      submittedAnswer,
+      submittedAnswer == correctAnswer,
+      UiUtils.determineBattleCorrectAnswerPoints(
+        opponentUserTimerAnimationController.value,
+        context.read<SystemConfigCubit>().getRandomBattleSeconds(),
+      ),
+    );
   }
 
   //if user has submitted the answer for current question
@@ -449,7 +495,7 @@ class _BattleRoomQuizScreenState extends State<BattleRoomQuizScreen>
                 "quizType": QuizTypes.battle,
                 "entryFee": state.battleRoom.entryFee,
               },
-            );
+            ).then((_) => battleRoomCubit.deleteBattleRoom(false));
           }
         }
       }
@@ -760,32 +806,35 @@ class _BattleRoomQuizScreenState extends State<BattleRoomQuizScreen>
   }
 
   Widget _buildMessageButton() {
-    return AnimatedBuilder(
-      animation: messageBoxAnimationController,
-      builder: (context, child) {
-        return InkWell(
-          onTap: () {
-            if (messageBoxAnimationController.isCompleted) {
-              messageBoxAnimationController.reverse();
-            } else {
-              messageBoxAnimationController.forward();
-            }
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.background,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 4),
-            child: Icon(
-              CupertinoIcons.ellipses_bubble_fill,
-              color: Theme.of(context).primaryColor,
-              size: 20,
-            ),
-          ),
-        );
-      },
-    );
+    return widget.playWithBot
+        ? const SizedBox.shrink()
+        : AnimatedBuilder(
+            animation: messageBoxAnimationController,
+            builder: (context, child) {
+              return InkWell(
+                onTap: () {
+                  if (messageBoxAnimationController.isCompleted) {
+                    messageBoxAnimationController.reverse();
+                  } else {
+                    messageBoxAnimationController.forward();
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.background,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4.5, vertical: 4),
+                  child: Icon(
+                    CupertinoIcons.ellipses_bubble_fill,
+                    color: Theme.of(context).primaryColor,
+                    size: 20,
+                  ),
+                ),
+              );
+            },
+          );
   }
 
   Widget _buildMessageBoxContainer() {
