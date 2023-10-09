@@ -10,6 +10,9 @@ class Subcategory {
     this.rowOrder,
     this.status,
     this.subcategoryName,
+    this.isPremium = false,
+    required this.requiredCoins,
+    this.hasUnlocked = false,
   });
 
   final String? id;
@@ -22,6 +25,9 @@ class Subcategory {
   final String? status;
   final String? subcategoryName;
   final bool isPlayed;
+  final bool isPremium;
+  final bool hasUnlocked;
+  final int requiredCoins;
 
   factory Subcategory.fromJson(Map<String, dynamic> json) {
     return Subcategory(
@@ -35,6 +41,24 @@ class Subcategory {
       rowOrder: json["row_order"],
       status: json["status"],
       subcategoryName: json["subcategory_name"],
+      isPremium: (json['is_premium'] ?? "0") == "1",
+      hasUnlocked: (json['has_unlocked'] ?? "0") == "1",
+      requiredCoins: int.parse(json['coins'] ?? '0'),
     );
   }
+  Subcategory copyWith({bool? hasUnlocked}) => Subcategory(
+        isPlayed: isPlayed,
+        requiredCoins: requiredCoins,
+        id: id,
+        image: image,
+        languageId: languageId,
+        mainCatId: mainCatId,
+        maxLevel: maxLevel,
+        noOfQue: noOfQue,
+        rowOrder: rowOrder,
+        status: status,
+        subcategoryName: subcategoryName,
+        isPremium: isPremium,
+        hasUnlocked: hasUnlocked ?? this.hasUnlocked,
+      );
 }
