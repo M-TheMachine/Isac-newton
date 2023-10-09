@@ -13,6 +13,8 @@ import 'package:flutterquiz/ui/widgets/bannerAdContainer.dart';
 import 'package:flutterquiz/ui/widgets/circularProgressContainer.dart';
 import 'package:flutterquiz/ui/widgets/customAppbar.dart';
 import 'package:flutterquiz/ui/widgets/errorContainer.dart';
+import 'package:flutterquiz/ui/widgets/premium_category_access_badge.dart';
+import 'package:flutterquiz/ui/widgets/unlock_premium_category_dialog.dart';
 import 'package:flutterquiz/utils/constants/error_message_keys.dart';
 import 'package:flutterquiz/utils/ui_utils.dart';
 
@@ -94,6 +96,16 @@ class _CategoryScreen extends State<CategoryScreen> {
   }
 
   void _handleOnTapCategory(BuildContext context, Category category) {
+    /// Unlock the Premium Category
+    if (category.isPremium && !category.hasUnlocked) {
+      showUnlockPremiumCategoryDialog(
+        context,
+        categoryId: category.id!,
+        categoryName: category.categoryName!,
+        requiredCoins: category.requiredCoins,
+      );
+      return;
+    }
     /// noOf is number of subcategories
     if (category.noOf == "0") {
       if (widget.quizType == QuizTypes.quizZone) {
@@ -113,6 +125,7 @@ class _CategoryScreen extends State<CategoryScreen> {
             "comprehensionId": "",
             "quizName": "Quiz Zone",
             'showRetryButton': category.noOfQues! != '0',
+            "isPremiumCategory": category.isPremium,
           });
         } else {
           //navigate to level screen
@@ -125,18 +138,21 @@ class _CategoryScreen extends State<CategoryScreen> {
           "quizType": QuizTypes.audioQuestions,
           "categoryId": category.id,
           "isPlayed": category.isPlayed,
+          "isPremiumCategory": category.isPremium,
         });
       } else if (widget.quizType == QuizTypes.guessTheWord) {
         Navigator.of(context).pushNamed(Routes.guessTheWord, arguments: {
           "type": "category",
           "typeId": category.id,
           "isPlayed": category.isPlayed,
+          "isPremiumCategory": category.isPremium,
         });
       } else if (widget.quizType == QuizTypes.funAndLearn) {
         Navigator.of(context).pushNamed(Routes.funAndLearnTitle, arguments: {
           "type": "category",
           "typeId": category.id,
           "title": category.categoryName,
+          "isPremiumCategory": category.isPremium,
         });
       } else if (widget.quizType == QuizTypes.mathMania) {
         Navigator.of(context).pushNamed(Routes.quiz, arguments: {
@@ -144,6 +160,7 @@ class _CategoryScreen extends State<CategoryScreen> {
           "quizType": QuizTypes.mathMania,
           "categoryId": category.id,
           "isPlayed": category.isPlayed,
+          "isPremiumCategory": category.isPremium,
         });
       }
     } else {
@@ -153,6 +170,7 @@ class _CategoryScreen extends State<CategoryScreen> {
           arguments: {
             "category_id": category.id,
             "category_name": category.categoryName!,
+            "isPremiumCategory": category.isPremium,
           },
         );
       } else {
@@ -160,6 +178,7 @@ class _CategoryScreen extends State<CategoryScreen> {
           "categoryId": category.id,
           "quizType": widget.quizType,
           "category_name": category.categoryName!,
+           "isPremiumCategory": category.isPremium,
         });
       }
     }
@@ -218,6 +237,7 @@ class _CategoryScreen extends State<CategoryScreen> {
               },
               child: LayoutBuilder(
                 builder: (context, boxConstraints) {
+                  final colorScheme = Theme.of(context).colorScheme;
                   return Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -248,7 +268,7 @@ class _CategoryScreen extends State<CategoryScreen> {
                       Positioned(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.background,
+                           color: colorScheme.background,
                             borderRadius: BorderRadius.circular(10.0),
                           ),
                           padding: const EdgeInsets.all(12.0),
@@ -256,30 +276,31 @@ class _CategoryScreen extends State<CategoryScreen> {
                           child: Row(
                             children: [
                               /// Leading Image
-                              Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onTertiary
-                                        .withOpacity(0.1),
+                              Align(
+                                child: Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: colorScheme.onTertiary
+                                          .withOpacity(0.1),
+                                    ),
                                   ),
-                                ),
                                 padding: const EdgeInsets.all(5.0),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(1.0),
-                                  child: CachedNetworkImage(
-                                    fit: BoxFit.fill,
-                                    memCacheWidth: 50,
-                                    memCacheHeight: 50,
-                                    placeholder: (_, __) => const SizedBox(),
-                                    imageUrl: categoryList[index].image!,
-                                    errorWidget: (_, i, e) => Image(
-                                      image: AssetImage(
-                                        UiUtils.getImagePath("ic_launcher.png"),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(1.0),
+                                    child: CachedNetworkImage(
+                                      fit: BoxFit.fill,
+                                      memCacheWidth: 50,
+                                      memCacheHeight: 50,
+                                      placeholder: (_, __) => const SizedBox(),
+                                      imageUrl: categoryList[index].image!,
+                                      errorWidget: (_, i, e) => Image(
+                                        image: AssetImage(
+                                          UiUtils.getImagePath(
+                                              "ic_launcher.png"),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -296,9 +317,7 @@ class _CategoryScreen extends State<CategoryScreen> {
                                       categoryList[index].categoryName!,
                                       maxLines: 1,
                                       style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onTertiary,
+                                        color: colorScheme.onTertiary,
                                         fontSize: 18,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -309,9 +328,7 @@ class _CategoryScreen extends State<CategoryScreen> {
                                         "${AppLocalization.of(context)!.getTranslatedValues("questionLbl")!} : ${categoryList[index].noOfQues!}",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onTertiary
+                                          color: colorScheme.onTertiary
                                               .withOpacity(0.6),
                                         ),
                                       ),
@@ -323,9 +340,7 @@ class _CategoryScreen extends State<CategoryScreen> {
                                             : "Subcategories: ${categoryList[index].noOf!}",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onTertiary
+                                          color: colorScheme.onTertiary
                                               .withOpacity(0.6),
                                         ),
                                       ),
@@ -336,9 +351,7 @@ class _CategoryScreen extends State<CategoryScreen> {
                                             : "Subcategories: ${categoryList[index].noOf!}",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onTertiary
+                                          color: colorScheme.onTertiary
                                               .withOpacity(0.6),
                                         ),
                                       ),
@@ -349,21 +362,29 @@ class _CategoryScreen extends State<CategoryScreen> {
                               const SizedBox(width: 10),
 
                               /// right arrow
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(5.0),
-                                  border: Border.all(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onTertiary
-                                          .withOpacity(0.1)),
-                                ),
-                                child: Icon(
-                                  Icons.keyboard_arrow_right_rounded,
-                                  size: 30,
-                                  color:
-                                      Theme.of(context).colorScheme.onTertiary,
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PremiumCategoryAccessBadge(
+                                    hasUnlocked:
+                                        categoryList[index].hasUnlocked,
+                                    isPremium: categoryList[index].isPremium,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(5.0),
+                                      border: Border.all(
+                                          color: colorScheme.onTertiary
+                                              .withOpacity(0.1)),
+                                    ),
+                                    child: Icon(
+                                      Icons.keyboard_arrow_right_rounded,
+                                      size: 30,
+                                      color: colorScheme.onTertiary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
