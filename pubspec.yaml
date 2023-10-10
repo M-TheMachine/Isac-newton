@@ -49,7 +49,7 @@ dependencies:
   pin_code_fields: ^8.0.1
   scratcher: ^2.4.0
   screenshot: ^2.1.0
-  share_plus: any
+  share_plus: 7.1.0
   shared_preferences: ^2.2.1
   sign_in_with_apple: ^5.0.0
   unity_ads_plugin: ^0.3.8
