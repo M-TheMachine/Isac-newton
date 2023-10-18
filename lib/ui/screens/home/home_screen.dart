@@ -107,12 +107,12 @@ class _HomeScreenState extends State<HomeScreen>
   List<String> battleDesc = ["desGroupPlay", "desBattleQuiz"];
 
   List<String> playDifferentZone = [
-    "dailyQuiz",
+    //"dailyQuiz",
     "funAndLearn",
-    "guessTheWord",
-    "audioQuestions",
-    "mathMania",
-    "truefalse",
+    //"guessTheWord",
+    //"audioQuestions",
+    //"mathMania",
+    //"truefalse",
   ];
 
   List<String> playDifferentImg = [
@@ -1706,38 +1706,38 @@ class _HomeScreenState extends State<HomeScreen>
               _buildExamSelf(),
 
               // He goes the play in a different zone block
-              // BlocBuilder<AppLocalizationCubit, AppLocalizationState>(
-              //   builder: (context, state) {
-              //     if (_sysConfigCubit.isGuessTheWordEnabled) {
-              //       if (AppLocalization.of(context)!.locale.languageCode ==
-              //               "en-GB" ||
-              //           AppLocalization.of(context)!.locale.languageCode ==
-              //               "en") {
-              //         if (!(playDifferentZone.contains("guessTheWord"))) {
-              //           playDifferentZone.add("guessTheWord");
-              //         }
-              //         if (!(playDifferentImg.contains("guess_icon.svg"))) {
-              //           playDifferentImg.add("guess_icon.svg");
-              //         }
-              //         if (!(playDifferentZoneDesc
-              //             .contains("desGuessTheWord"))) {
-              //           playDifferentZoneDesc.add("desGuessTheWord");
-              //         }
-              //       }
+              BlocBuilder<AppLocalizationCubit, AppLocalizationState>(
+                builder: (context, state) {
+                  if (_sysConfigCubit.isGuessTheWordEnabled) {
+                    if (AppLocalization.of(context)!.locale.languageCode ==
+                            "en-GB" ||
+                        AppLocalization.of(context)!.locale.languageCode ==
+                            "en") {
+                      if (!(playDifferentZone.contains("guessTheWord"))) {
+                        playDifferentZone.add("guessTheWord");
+                      }
+                      if (!(playDifferentImg.contains("guess_icon.svg"))) {
+                        playDifferentImg.add("guess_icon.svg");
+                      }
+                      if (!(playDifferentZoneDesc
+                          .contains("desGuessTheWord"))) {
+                        playDifferentZoneDesc.add("desGuessTheWord");
+                      }
+                    }
 
               //       /// Remove GTW in Languages other than en_US & en_UK
-              //       if (state.language.languageCode != "en-GB" &&
-              //           state.language.languageCode != "en") {
-              //         playDifferentZone.removeWhere((e) => e == "guessTheWord");
-              //         playDifferentImg
-              //             .removeWhere((e) => e == "guess_icon.svg");
-              //         playDifferentZoneDesc
-              //             .removeWhere((e) => e == "desGuessTheWord");
-              //       }
-              //     }
-              //     return _buildZones();
-              //   },
-              // ),
+                    if (state.language.languageCode != "en-GB" &&
+                        state.language.languageCode != "en") {
+                      playDifferentZone.removeWhere((e) => e == "guessTheWord");
+                      playDifferentImg
+                          .removeWhere((e) => e == "guess_icon.svg");
+                      playDifferentZoneDesc
+                          .removeWhere((e) => e == "desGuessTheWord");
+                    }
+                  }
+                  return _buildZones();
+                },
+              ),
             ],
           ),
         ),
